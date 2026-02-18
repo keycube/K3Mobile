@@ -24,11 +24,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 
+
+// Main entry point of the application
+// Sets up the Material theme and displays the main screen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
+                // Root surface filling the entire screen
                 Surface(modifier = Modifier.fillMaxSize()) {
                     CategorySelectionScreen()
                 }
@@ -40,24 +44,33 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
+
+    // Available text categories for typing practice
     val categories = listOf("phrases", "histoires", "textes personnalisées")
+
+    // Observes the list of texts from the ViewModel (StateFlow)
     val availableTexts by model.texts.collectAsState()
 
+    // UI navigation states
     var selectedText by remember { mutableStateOf<TextEntity?>(null) }
     var currentCategory by remember { mutableStateOf("phrases") }
     var showAddScreen by remember { mutableStateOf(false) }
     var showStats by remember { mutableStateOf(false) }
 
+
+    // Reload texts whenever the selected category changes
     LaunchedEffect(currentCategory) {
         model.loadTextsByCategory(currentCategory)
     }
 
+    // Simple navigation logic between screens
     when {
         showStats -> {
             StatsScreen(model = model, onBack = { showStats = false })
         }
         showAddScreen -> {
             AddTextScreen(
+                // Save custom text and switch to the custom category
                 onSave = { title, content ->
                     model.addCustomText(title, content)
                     currentCategory = "textes personnalisées"
@@ -71,6 +84,7 @@ fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
                 textEntity = selectedText!!,
                 model = model,
                 onBack = {
+                    // Return to the text list after finishing or quitting
                     selectedText = null
                     model.loadTextsByCategory(currentCategory)
                 }
@@ -82,7 +96,7 @@ fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
                     CenterAlignedTopAppBar(
                         title = { Text("K3 Typing", fontWeight = FontWeight.Bold) },
                         actions = {
-                            // Bouton Stats dans la barre du haut
+                            // Stats button in the top bar
                             IconButton(onClick = { showStats = true }) {
                                 Text("📊", fontSize = 20.sp)
                             }
@@ -109,7 +123,7 @@ fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Sélecteur de catégories (FilterChips)
+                    // Category selector (FilterChips)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -125,7 +139,7 @@ fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Liste des textes
+                    // Texts list
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -166,12 +180,16 @@ fun CategorySelectionScreen(model: MainViewModel = viewModel()) {
 
 @Composable
 fun AddTextScreen(onSave: (String, String) -> Unit, onCancel: () -> Unit) {
+
+    // Local state for user input
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Screen title
         Text("Ajouter un texte perso", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
+        // Text title input
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
@@ -179,14 +197,16 @@ fun AddTextScreen(onSave: (String, String) -> Unit, onCancel: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Text content input
         OutlinedTextField(
             value = content,
             onValueChange = { content = it },
             label = { Text("Contenu du texte") },
-            modifier = Modifier.fillMaxWidth().weight(1f), // Prend l'espace restant
+            modifier = Modifier.fillMaxWidth().weight(1f), // Takes remaining vertical space
             minLines = 5
         )
 
+        // Action buttons
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Annuler") }
             Button(
@@ -204,24 +224,33 @@ fun TypingTest(
     model: MainViewModel,
     onBack: () -> Unit
 ) {
+
+    // Split the full text into sentences based on punctuation
+    // Each sentence will be read aloud separately by TextToSpeech
     val sentences = remember(textEntity) {
         textEntity.content
             .split("(?<=[.!?])\\s+".toRegex())
             .filter { it.isNotBlank() }
     }
 
+    // Index of the currently displayed sentence
     var currentSentenceIndex by remember { mutableStateOf(0) }
+    // User input for the current sentence
     var userInput by remember { mutableStateOf("") }
+    // Session start time (used to compute typing speed)
     val startTime = remember { System.currentTimeMillis() }
+    // Focus controller to automatically focus the text field
     val focusRequester = remember { FocusRequester() }
 
+    // Automatically speak the current sentence when it changes
     LaunchedEffect(currentSentenceIndex) {
         if (currentSentenceIndex < sentences.size) {
             model.speak(sentences[currentSentenceIndex])
         }
     }
 
-    // --- TON BLOC DE NETTOYAGE PERSONNALISÉ ---
+    // Normalizes text to avoid false typing errors caused by typography differences
+    // This allows fair comparison between the displayed text and user input
     fun String.normalize(): String {
         return this
             .replace("’", "'")
@@ -237,12 +266,18 @@ fun TypingTest(
             .trim()
     }
 
+    // Original sentence displayed to the user
     val rawTarget = sentences[currentSentenceIndex].trim()
+
+    // Normalized versions used for comparison
     val cleanTarget = rawTarget.normalize()
     val cleanInput = userInput.normalize()
 
+    // Detects a typing error as soon as the input diverges from the target
     val isError = userInput.isNotEmpty() && !cleanTarget.startsWith(cleanInput)
+    // Checks if the current sentence is fully typed
     val isFinishedSentence = cleanInput == cleanTarget
+    // Checks if this is the last sentence of the text
     val isLastSentence = currentSentenceIndex == sentences.size - 1
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -286,6 +321,7 @@ fun TypingTest(
         )
 
         if (isLastSentence && isFinishedSentence) {
+            // Save the typing session when the last sentence is completed
             Button(
                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                 onClick = {
@@ -293,6 +329,7 @@ fun TypingTest(
                     val words = textEntity.content.split("\\s+".toRegex()).size
                     val wpm = words / (duration / 60000.0)
 
+                    // Save session statistics to the database
                     model.saveSession(textEntity.idText, duration, wpm, 100.0)
                     onBack()
                 }
@@ -306,12 +343,16 @@ fun TypingTest(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
+
+    // Observes all recorded typing sessions
     val sessions by model.sessions.collectAsState()
 
+    // Load statistics when the screen appears
     LaunchedEffect(Unit) {
         model.loadStats()
     }
 
+    // Displays either a message or the list of statistics
     Scaffold(
         topBar = {
             TopAppBar(
