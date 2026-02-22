@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// ... gardez vos imports existants et ajoutez :
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.k3mobile.testk3.ui.MainViewModel
 import com.k3mobile.testk3.data.TextEntity
@@ -237,7 +236,8 @@ fun TypingTest(
     var currentSentenceIndex by remember { mutableStateOf(0) }
     var userInput by remember { mutableStateOf("") }
     var totalTypedChars by remember { mutableStateOf(0) }
-    var totalCorrectChars by remember { mutableStateOf(0) }
+    var totalDistance by remember { mutableStateOf(0) } // Cumule les erreurs Levenshtein
+    var totalEvaluatedChars by remember { mutableStateOf(0) } // Cumule la longueur max évaluée
     val startTime = remember { System.currentTimeMillis() }
     val focusRequester = remember { FocusRequester() }
 
@@ -274,36 +274,36 @@ fun TypingTest(
 
     // Fonction centrale de validation
     fun goToNextSentence() {
-
         val cleanInput = userInput.normalize()
         val cleanTarget = rawTarget.normalize()
 
-        // 🔥 Compte les caractères tapés
+        // 1. WPM : Compter les caractères tapés
         totalTypedChars += cleanInput.length
 
-        // 🔥 Compte les caractères corrects
-        val correctChars = cleanInput.zip(cleanTarget)
-            .count { it.first == it.second }
-
-        totalCorrectChars += correctChars
+        // 2. PRÉCISION : Calculer la distance de Levenshtein
+        val distance = calculateLevenshteinDistance(cleanInput, cleanTarget)
+        totalDistance += distance
+        // On se base sur la longueur maximale pour avoir un pourcentage cohérent
+        totalEvaluatedChars += maxOf(cleanInput.length, cleanTarget.length)
 
         if (currentSentenceIndex < sentences.lastIndex) {
             currentSentenceIndex++
             userInput = ""
         } else {
-
+            // Fin du test
             val duration = System.currentTimeMillis() - startTime
+            val minutes = duration / 60000.0
 
             // 🔥 Calcul réel WPM (5 caractères = 1 mot standard)
-            val minutes = duration / 60000.0
-            val wpm = (totalTypedChars / 5.0) / minutes
+            val wpm = if (minutes > 0) (totalTypedChars / 5.0) / minutes else 0.0
 
-            // 🔥 Calcul précision réelle
-            val accuracy =
-                if (totalTypedChars > 0)
-                    (totalCorrectChars.toDouble() / totalTypedChars) * 100
-                else 0.0
+            // 🔥 Calcul précision avec Levenshtein
+            val accuracy = if (totalEvaluatedChars > 0) {
+                // (Caractères totaux - erreurs) / Caractères totaux
+                ((totalEvaluatedChars - totalDistance).toDouble() / totalEvaluatedChars) * 100
+            } else 0.0
 
+            // Sauvegarde de la session (déjà bien câblée vers ton ViewModel)
             model.saveSession(
                 textEntity.idText,
                 duration,
@@ -423,4 +423,27 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
             }
         }
     }
+}
+
+fun calculateLevenshteinDistance(s1: String, s2: String): Int {
+    if (s1 == s2) return 0
+    if (s1.isEmpty()) return s2.length
+    if (s2.isEmpty()) return s1.length
+
+    val d = Array(s1.length + 1) { IntArray(s2.length + 1) }
+
+    for (i in 0..s1.length) d[i][0] = i
+    for (j in 0..s2.length) d[0][j] = j
+
+    for (i in 1..s1.length) {
+        for (j in 1..s2.length) {
+            val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+            d[i][j] = minOf(
+                d[i - 1][j] + 1,       // Suppression
+                d[i][j - 1] + 1,       // Insertion
+                d[i - 1][j - 1] + cost // Substitution
+            )
+        }
+    }
+    return d[s1.length][s2.length]
 }
