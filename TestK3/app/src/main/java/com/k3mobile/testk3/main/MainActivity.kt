@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 
 
 // Main entry point of the application
@@ -224,33 +227,28 @@ fun TypingTest(
     model: MainViewModel,
     onBack: () -> Unit
 ) {
-
-    // Split the full text into sentences based on punctuation
-    // Each sentence will be read aloud separately by TextToSpeech
+    // Découpage du texte en phrases
     val sentences = remember(textEntity) {
         textEntity.content
             .split("(?<=[.!?])\\s+".toRegex())
             .filter { it.isNotBlank() }
     }
 
-    // Index of the currently displayed sentence
     var currentSentenceIndex by remember { mutableStateOf(0) }
-    // User input for the current sentence
     var userInput by remember { mutableStateOf("") }
-    // Session start time (used to compute typing speed)
+    var totalTypedChars by remember { mutableStateOf(0) }
+    var totalCorrectChars by remember { mutableStateOf(0) }
     val startTime = remember { System.currentTimeMillis() }
-    // Focus controller to automatically focus the text field
     val focusRequester = remember { FocusRequester() }
 
-    // Automatically speak the current sentence when it changes
+    // Lecture audio automatique
     LaunchedEffect(currentSentenceIndex) {
         if (currentSentenceIndex < sentences.size) {
             model.speak(sentences[currentSentenceIndex])
         }
     }
 
-    // Normalizes text to avoid false typing errors caused by typography differences
-    // This allows fair comparison between the displayed text and user input
+    // Normalisation
     fun String.normalize(): String {
         return this
             .replace("’", "'")
@@ -261,38 +259,91 @@ fun TypingTest(
             .replace("æ", "ae")
             .replace("Æ", "Ae")
             .replace("ß", "ss")
-            .replace("\n", " ")
+            .replace("\n", "")
             .replace("\r", "")
             .trim()
     }
 
-    // Original sentence displayed to the user
-    val rawTarget = sentences[currentSentenceIndex].trim()
-
-    // Normalized versions used for comparison
+    val rawTarget = sentences[currentSentenceIndex]
     val cleanTarget = rawTarget.normalize()
     val cleanInput = userInput.normalize()
 
-    // Detects a typing error as soon as the input diverges from the target
     val isError = userInput.isNotEmpty() && !cleanTarget.startsWith(cleanInput)
-    // Checks if the current sentence is fully typed
     val isFinishedSentence = cleanInput == cleanTarget
-    // Checks if this is the last sentence of the text
-    val isLastSentence = currentSentenceIndex == sentences.size - 1
+    val isLastSentence = currentSentenceIndex == sentences.lastIndex
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // Fonction centrale de validation
+    fun goToNextSentence() {
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        IconButton(onClick = onBack) { Text("⬅ Quitter") }
+        val cleanInput = userInput.normalize()
+        val cleanTarget = rawTarget.normalize()
 
+        // 🔥 Compte les caractères tapés
+        totalTypedChars += cleanInput.length
+
+        // 🔥 Compte les caractères corrects
+        val correctChars = cleanInput.zip(cleanTarget)
+            .count { it.first == it.second }
+
+        totalCorrectChars += correctChars
+
+        if (currentSentenceIndex < sentences.lastIndex) {
+            currentSentenceIndex++
+            userInput = ""
+        } else {
+
+            val duration = System.currentTimeMillis() - startTime
+
+            // 🔥 Calcul réel WPM (5 caractères = 1 mot standard)
+            val minutes = duration / 60000.0
+            val wpm = (totalTypedChars / 5.0) / minutes
+
+            // 🔥 Calcul précision réelle
+            val accuracy =
+                if (totalTypedChars > 0)
+                    (totalCorrectChars.toDouble() / totalTypedChars) * 100
+                else 0.0
+
+            model.saveSession(
+                textEntity.idText,
+                duration,
+                wpm,
+                accuracy
+            )
+
+            model.stopSpeaking()
+            onBack()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        // Bouton Quitter
+        IconButton(onClick = {
+            model.stopSpeaking()
+            onBack()
+        }) {
+            Text("⬅ Quitter")
+        }
+
+        // Progression correcte (atteint 100%)
         LinearProgressIndicator(
-            progress = (currentSentenceIndex.toFloat() / sentences.size),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            progress = (currentSentenceIndex + 1).toFloat() / sentences.size,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Affichage (Texte original pour la lecture)
         Text(
             text = rawTarget,
             fontSize = 22.sp,
@@ -306,37 +357,23 @@ fun TypingTest(
         OutlinedTextField(
             value = userInput,
             onValueChange = { newValue ->
-                userInput = newValue
-
-                // Si la phrase est finie (en utilisant ton nettoyage), on passe à la suite
-                if (newValue.normalize() == cleanTarget && !isLastSentence) {
-                    currentSentenceIndex++
-                    userInput = ""
-                }
+                userInput = newValue.replace("\n", "")
             },
             label = { Text("Tapez le texte...") },
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
             isError = isError,
-            supportingText = { if (isError) Text("Erreur de caractère") }
-        )
-
-        if (isLastSentence && isFinishedSentence) {
-            // Save the typing session when the last sentence is completed
-            Button(
-                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                onClick = {
-                    val duration = System.currentTimeMillis() - startTime
-                    val words = textEntity.content.split("\\s+".toRegex()).size
-                    val wpm = words / (duration / 60000.0)
-
-                    // Save session statistics to the database
-                    model.saveSession(textEntity.idText, duration, wpm, 100.0)
-                    onBack()
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    goToNextSentence()   // 🔥 PAS de validation
                 }
-            ) {
-                Text("ENREGISTRER LA SESSION")
-            }
-        }
+            )
+        )
     }
 }
 

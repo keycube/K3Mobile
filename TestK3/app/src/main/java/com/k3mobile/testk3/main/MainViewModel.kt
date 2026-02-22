@@ -168,4 +168,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             dao.insertSession(session)
         }
     }
+
+    /**
+     * Arrête immédiatement toute lecture en cours.
+     */
+    fun stopSpeaking() {
+        if (isTtsReady) {
+            tts?.stop()
+        }
+    }
 }
