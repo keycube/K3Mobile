@@ -2,6 +2,7 @@ package com.k3mobile.testk3.ui
 
 import android.app.Application
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.k3mobile.testk3.data.AppDatabase
@@ -20,6 +21,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
 
+    // --- Voix disponibles ---
+
+    // Liste des voix françaises disponibles sur l'appareil
+    private val _availableVoices = MutableStateFlow<List<Voice>>(emptyList())
+    val availableVoices = _availableVoices.asStateFlow()
+
+    // Voix actuellement sélectionnée (null = voix par défaut)
+    private val _selectedVoice = MutableStateFlow<Voice?>(null)
+    val selectedVoice = _selectedVoice.asStateFlow()
+
     init {
         tts = TextToSpeech(application, this)
     }
@@ -30,7 +41,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             val result = tts?.setLanguage(Locale.FRENCH)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 isTtsReady = true
+                loadAvailableVoices()
             }
+        }
+    }
+
+    /**
+     * Récupère toutes les voix françaises disponibles sur l'appareil
+     * et les trie par nom pour un affichage cohérent.
+     */
+    private fun loadAvailableVoices() {
+        val voices = tts?.voices
+            ?.filter { voice ->
+                voice.locale.language == "fr" && !voice.isNetworkConnectionRequired
+            }
+            ?.sortedBy { it.name }
+            ?: emptyList()
+
+        _availableVoices.value = voices
+
+        // Pré-sélectionne la voix active du moteur TTS si disponible
+        _selectedVoice.value = tts?.voice
+    }
+
+    /**
+     * Applique une voix choisie par l'utilisateur.
+     * La mémorise dans le ViewModel pour la session en cours.
+     */
+    fun selectVoice(voice: Voice) {
+        tts?.voice = voice
+        _selectedVoice.value = voice
+    }
+
+    /**
+     * Joue un aperçu de la voix donnée avec une phrase d'exemple,
+     * puis restaure la voix sélectionnée.
+     */
+    fun previewVoice(voice: Voice) {
+        if (!isTtsReady) return
+        val previousVoice = tts?.voice
+        tts?.voice = voice
+        tts?.speak(
+            "Bonjour, voici un aperçu de ma voix.",
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "VoicePreview"
+        )
+        // Restaure la voix sélectionnée après la lecture si ce n'est pas celle qu'on prévisualise
+        if (previousVoice != null && previousVoice.name != voice.name && _selectedVoice.value?.name != voice.name) {
+            tts?.voice = _selectedVoice.value ?: previousVoice
         }
     }
 
@@ -49,6 +108,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun stopSpeaking() {
         if (isTtsReady) tts?.stop()
+    }
+
+    /**
+     * Modifie la vitesse de lecture du TTS.
+     * @param rate vitesse en mots/sec (1.0 = normal, 0.5 = lent, 2.0 = rapide)
+     *             Converti en speechRate TTS : 1 mot/sec ≈ 0.65 de speechRate
+     */
+    fun setSpeechRate(rate: Float) {
+        // On mappe la plage 1–3 mots/sec vers une plage TTS 0.4–1.2
+        val ttsRate = 0.4f + ((rate - 1f) / 2f) * 0.8f
+        tts?.setSpeechRate(ttsRate)
     }
 
     override fun onCleared() {
@@ -93,11 +163,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     // --- Sessions ---
 
-    // Gardé pour la compatibilité si besoin
     private val _sessions = MutableStateFlow<List<SessionEntity>>(emptyList())
     val sessions = _sessions.asStateFlow()
 
-    // Sessions enrichies avec le titre du texte
     private val _sessionsWithTitle = MutableStateFlow<List<SessionWithTitle>>(emptyList())
     val sessionsWithTitle = _sessionsWithTitle.asStateFlow()
 

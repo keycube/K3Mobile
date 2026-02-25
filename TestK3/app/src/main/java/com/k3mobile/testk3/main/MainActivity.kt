@@ -17,9 +17,19 @@ import com.k3mobile.testk3.ui.screens.HomeScreen
 import com.k3mobile.testk3.ui.screens.CustomGameScreen
 import com.k3mobile.testk3.ui.screens.TextListScreen
 import com.k3mobile.testk3.ui.screens.SettingsScreen
+import com.k3mobile.testk3.ui.screens.VoiceScreen
 import com.k3mobile.testk3.ui.screens.StatsScreen
 import com.k3mobile.testk3.ui.screens.TypingScreen
 
+/**
+ * MainActivity
+ *
+ * Flux de navigation :
+ *   welcome → home → custom_game → text_list/{category} → typing/{textId}
+ *                  → settings → stats
+ *                             → text_list_readonly/textes personnalisées
+ *                             → voices
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +56,8 @@ class MainActivity : ComponentActivity() {
 
                         composable("settings") {
                             SettingsScreen(
+                                onVoix = { navController.navigate("voices") },
                                 onTextesPersonnalises = {
-                                    // readOnly=true : consultation + modification uniquement
                                     navController.navigate("text_list_readonly/textes personnalisées")
                                 },
                                 onStatistiques = { navController.navigate("stats") },
@@ -55,9 +65,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // Sélection et aperçu des voix TTS
+                        composable("voices") {
+                            VoiceScreen(
+                                model = viewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
                         composable("custom_game") {
                             CustomGameScreen(
-                                onConfirmer = { category, _ ->
+                                onConfirmer = { category, speed ->
+                                    viewModel.setSpeechRate(speed)
                                     navController.navigate("text_list/$category")
                                 },
                                 onAnnuler = { navController.popBackStack() },
@@ -65,7 +84,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Mode jeu : clic sur un texte → lance la partie
+                        // Mode jeu
                         composable("text_list/{category}") { backStackEntry ->
                             val category = backStackEntry.arguments?.getString("category") ?: "phrases"
                             TextListScreen(
@@ -77,7 +96,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Mode consultation : clic sur un texte perso → dialog d'édition
+                        // Mode consultation / édition (depuis paramètres)
                         composable("text_list_readonly/{category}") { backStackEntry ->
                             val category = backStackEntry.arguments?.getString("category") ?: "textes personnalisées"
                             TextListScreen(
@@ -104,7 +123,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("stats") {
-                            StatsScreen(model = viewModel, onBack = { navController.popBackStack() })
+                            StatsScreen(
+                                model = viewModel,
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                     }
                 }
