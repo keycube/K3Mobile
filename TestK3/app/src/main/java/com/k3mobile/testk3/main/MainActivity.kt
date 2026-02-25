@@ -16,18 +16,10 @@ import com.k3mobile.testk3.ui.screens.WelcomeScreen
 import com.k3mobile.testk3.ui.screens.HomeScreen
 import com.k3mobile.testk3.ui.screens.CustomGameScreen
 import com.k3mobile.testk3.ui.screens.TextListScreen
-import com.k3mobile.testk3.ui.screens.AddTextScreen
+import com.k3mobile.testk3.ui.screens.SettingsScreen
 import com.k3mobile.testk3.ui.screens.StatsScreen
 import com.k3mobile.testk3.ui.screens.TypingScreen
 
-/**
- * MainActivity
- *
- * Flux de navigation :
- *   welcome → home → custom_game → text_list/{category} → typing/{textId}
- *                  → stats
- *                  → add_text
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,80 +30,81 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val viewModel: MainViewModel = viewModel()
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = "welcome"
-                    ) {
+                    NavHost(navController = navController, startDestination = "welcome") {
 
-                        // 1. Écran de bienvenue
                         composable("welcome") {
-                            WelcomeScreen(
-                                onCommencer = { navController.navigate("home") }
-                            )
+                            WelcomeScreen(onCommencer = { navController.navigate("home") })
                         }
 
-                        // 2. Choix du type de partie
                         composable("home") {
                             HomeScreen(
-                                onPartieRapide = {
-                                    // TODO : à implémenter
-                                },
-                                onPartiePersonnalisee = {
-                                    navController.navigate("custom_game")
-                                }
+                                onPartieRapide = { /* TODO */ },
+                                onPartiePersonnalisee = { navController.navigate("custom_game") },
+                                onSettings = { navController.navigate("settings") }
                             )
                         }
 
-                        // 3. Paramétrage de la partie
+                        composable("settings") {
+                            SettingsScreen(
+                                onTextesPersonnalises = {
+                                    // readOnly=true : consultation + modification uniquement
+                                    navController.navigate("text_list_readonly/textes personnalisées")
+                                },
+                                onStatistiques = { navController.navigate("stats") },
+                                onQuitter = { navController.popBackStack() }
+                            )
+                        }
+
                         composable("custom_game") {
                             CustomGameScreen(
                                 onConfirmer = { category, _ ->
-                                    // Navigue vers la liste des textes de la catégorie choisie
                                     navController.navigate("text_list/$category")
                                 },
-                                onAnnuler = { navController.popBackStack() }
+                                onAnnuler = { navController.popBackStack() },
+                                onSettings = { navController.navigate("settings") }
                             )
                         }
 
-                        // 4. Liste des textes de la catégorie choisie
+                        // Mode jeu : clic sur un texte → lance la partie
                         composable("text_list/{category}") { backStackEntry ->
                             val category = backStackEntry.arguments?.getString("category") ?: "phrases"
                             TextListScreen(
                                 category = category,
                                 model = viewModel,
-                                onTextSelected = { textId ->
-                                    navController.navigate("typing/$textId")
-                                },
-                                onBack = { navController.popBackStack() }
+                                onTextSelected = { textId -> navController.navigate("typing/$textId") },
+                                onBack = { navController.popBackStack() },
+                                readOnly = false
                             )
                         }
 
-                        // 5. Exercice de frappe
+                        // Mode consultation : clic sur un texte perso → dialog d'édition
+                        composable("text_list_readonly/{category}") { backStackEntry ->
+                            val category = backStackEntry.arguments?.getString("category") ?: "textes personnalisées"
+                            TextListScreen(
+                                category = category,
+                                model = viewModel,
+                                onBack = { navController.popBackStack() },
+                                readOnly = true
+                            )
+                        }
+
                         composable("typing/{textId}") { backStackEntry ->
                             val textId = backStackEntry.arguments?.getString("textId")?.toLongOrNull()
                                 ?: return@composable
                             TypingScreen(
                                 textId = textId,
                                 model = viewModel,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onFinished = {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = false }
+                                    }
+                                }
                             )
                         }
 
-                        // 6. Statistiques
                         composable("stats") {
-                            StatsScreen(
-                                model = viewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
-
-                        // 7. Ajout d'un texte personnalisé
-                        composable("add_text") {
-                            AddTextScreen(
-                                model = viewModel,
-                                onSaved = { navController.popBackStack() },
-                                onCancel = { navController.popBackStack() }
-                            )
+                            StatsScreen(model = viewModel, onBack = { navController.popBackStack() })
                         }
                     }
                 }
