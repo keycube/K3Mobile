@@ -5,6 +5,7 @@ import android.speech.tts.TextToSpeech
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.k3mobile.testk3.data.AppDatabase
+import com.k3mobile.testk3.data.SessionWithTitle
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.data.SessionEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,20 +70,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun addCustomText(title: String, content: String) {
         viewModelScope.launch {
-            val newText = TextEntity(
-                idText = 0,
-                title = title,
-                content = content,
-                language = "fr",
-                category = "textes personnalisées",
-                difficulty = 1
+            dao.insertText(
+                TextEntity(
+                    idText = 0,
+                    title = title,
+                    content = content,
+                    language = "fr",
+                    category = "textes personnalisées",
+                    difficulty = 1
+                )
             )
-            dao.insertText(newText)
             loadTextsByCategory("textes personnalisées")
         }
     }
 
-    /** Met à jour le titre et le contenu d'un texte personnalisé existant. */
     fun updateCustomText(id: Long, title: String, content: String) {
         viewModelScope.launch {
             dao.updateText(id, title, content)
@@ -92,25 +93,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     // --- Sessions ---
 
+    // Gardé pour la compatibilité si besoin
     private val _sessions = MutableStateFlow<List<SessionEntity>>(emptyList())
     val sessions = _sessions.asStateFlow()
+
+    // Sessions enrichies avec le titre du texte
+    private val _sessionsWithTitle = MutableStateFlow<List<SessionWithTitle>>(emptyList())
+    val sessionsWithTitle = _sessionsWithTitle.asStateFlow()
 
     fun loadStats() {
         viewModelScope.launch {
             _sessions.value = dao.getAllSessions()
+            _sessionsWithTitle.value = dao.getAllSessionsWithTitle()
         }
     }
 
     fun saveSession(textId: Long, durationMillis: Long, wpm: Double, accuracy: Double) {
         viewModelScope.launch {
-            val session = SessionEntity(
-                textId = textId,
-                duration = durationMillis,
-                wpm = wpm,
-                accuracy = accuracy,
-                timeStamp = System.currentTimeMillis()
+            dao.insertSession(
+                SessionEntity(
+                    textId = textId,
+                    duration = durationMillis,
+                    wpm = wpm,
+                    accuracy = accuracy,
+                    timeStamp = System.currentTimeMillis()
+                )
             )
-            dao.insertSession(session)
         }
     }
 }
