@@ -48,6 +48,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version") // Pour utiliser les "suspend" functions
     ksp("androidx.room:room-compiler:$room_version") // Le moteur de génération de Room
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
