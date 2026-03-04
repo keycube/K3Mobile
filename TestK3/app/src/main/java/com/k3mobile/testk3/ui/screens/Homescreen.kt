@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -25,7 +24,7 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 fun HomeScreen(
-    onPartieRapide: () -> Unit,
+    onPartieRapide: () -> Unit = {},
     onPartiePersonnalisee: () -> Unit,
     onSettings: () -> Unit = {}
 ) {
@@ -65,29 +64,18 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(64.dp))
 
-            // Bouton principal : partie rapide
+            // Bouton principal : partie personnalisée
             Button(
-                onClick = onPartieRapide,
+                onClick = onPartiePersonnalisee,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onBackground
                 )
             ) {
                 Text(
-                    "Lancer une partie rapide",
+                    "Lancer une partie",
                     color = MaterialTheme.colorScheme.background,
                     modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Lien texte : partie personnalisée
-            TextButton(onClick = onPartiePersonnalisee) {
-                Text(
-                    text = "Lancer une partie personnalisée",
-                    color = Color.Gray,
-                    textDecoration = TextDecoration.None
                 )
             }
         }

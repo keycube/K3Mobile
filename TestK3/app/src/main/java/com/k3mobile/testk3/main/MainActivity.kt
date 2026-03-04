@@ -12,7 +12,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.k3mobile.testk3.ui.MainViewModel
-import com.k3mobile.testk3.ui.screens.WelcomeScreen
 import com.k3mobile.testk3.ui.screens.HomeScreen
 import com.k3mobile.testk3.ui.screens.CustomGameScreen
 import com.k3mobile.testk3.ui.screens.TextListScreen
@@ -40,11 +39,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val viewModel: MainViewModel = viewModel()
 
-                    NavHost(navController = navController, startDestination = "welcome") {
-
-                        composable("welcome") {
-                            WelcomeScreen(onCommencer = { navController.navigate("home") })
-                        }
+                    NavHost(navController = navController, startDestination = "home") {
 
                         composable("home") {
                             HomeScreen(
