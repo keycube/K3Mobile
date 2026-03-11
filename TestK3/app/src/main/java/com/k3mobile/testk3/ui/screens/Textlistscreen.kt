@@ -1,5 +1,6 @@
 package com.k3mobile.testk3.ui.screens
 
+import android.view.KeyEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,15 +19,6 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.ui.MainViewModel
 
-/**
- * TextListScreen
- *
- * Affiche la liste des textes d'une catégorie.
- *
- * @param readOnly Si true (depuis les paramètres) : pas de navigation vers la partie,
- *                 les textes personnalisés sont modifiables via un dialog.
- *                 Si false (depuis custom_game) : clic sur un texte lance la partie.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextListScreen(
@@ -40,15 +32,67 @@ fun TextListScreen(
     val isCustomCategory = category == "textes personnalisées"
 
     var showAddDialog by remember { mutableStateOf(false) }
-    var textToEdit by remember { mutableStateOf<TextEntity?>(null) }
+    var textToEdit    by remember { mutableStateOf<TextEntity?>(null) }
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(category) {
         model.loadTextsByCategory(category)
     }
 
+    // En mode jeu : écran noir pendant la sélection
+    if (!readOnly) {
+        DisposableEffect(Unit) {
+            model.dimScreen()
+            onDispose { model.normalScreen() }
+        }
+    }
+
+    // Guide audio — uniquement en mode jeu
+    if (!readOnly) {
+        LaunchedEffect(texts) {
+            if (texts.isEmpty()) {
+                model.speak("Aucun texte disponible dans cette catégorie")
+                return@LaunchedEffect
+            }
+            announceList(model, texts)
+        }
+
+        LaunchedEffect("keys") {
+            model.keyEvent.collect { keyCode ->
+                val digitIndex = keyCodeToIndex(keyCode)
+                when {
+                    digitIndex != null && digitIndex < texts.size -> {
+                        selectedIndex = digitIndex
+                        model.speak(
+                            "Texte sélectionné ${texts[digitIndex].title} " +
+                                    "Appuyez sur Entrée pour démarrer " +
+                                    "ou sur un autre numéro pour changer"
+                        )
+                    }
+                    keyCode == KeyEvent.KEYCODE_ENTER -> {
+                        val idx = selectedIndex
+                        if (idx != null && idx < texts.size) {
+                            model.stopSpeaking()
+                            onTextSelected(texts[idx].idText)
+                        } else {
+                            model.speak("Veuillez d'abord sélectionner un texte avec son numéro")
+                        }
+                    }
+                    keyCode == KeyEvent.KEYCODE_STAR ||
+                            (digitIndex != null && digitIndex >= texts.size) -> {
+                        announceList(model, texts)
+                    }
+                    keyCode == KeyEvent.KEYCODE_DEL -> {
+                        model.stopSpeaking()
+                        onBack()
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         floatingActionButton = {
-            // Bouton + visible uniquement pour les textes personnalisés
             if (isCustomCategory) {
                 FloatingActionButton(
                     onClick = { showAddDialog = true },
@@ -60,23 +104,14 @@ fun TextListScreen(
             }
         }
     ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-
-            // --- Header ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)
             ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
+                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = Color.Black)
                 }
                 Row(
@@ -92,7 +127,6 @@ fun TextListScreen(
             HorizontalDivider(color = Color.Black, thickness = 1.dp)
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- Titre + compteur ---
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(
                     text = category.replaceFirstChar { it.uppercase() },
@@ -109,66 +143,62 @@ fun TextListScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- Liste ou message vide ---
             if (texts.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Aucun texte disponible.", color = Color.Gray, fontSize = 14.sp)
+                        Text("Aucun texte disponible", color = Color.Gray, fontSize = 14.sp)
                         if (isCustomCategory) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Appuyez sur + pour en ajouter un.", color = Color.Gray, fontSize = 13.sp)
+                            Text("Appuyez sur + pour en ajouter un", color = Color.Gray, fontSize = 13.sp)
                         }
                     }
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(texts) { textEntity ->
+                    items(texts.take(9).mapIndexed { i, t -> i to t }) { (idx, textEntity) ->
+                        val isSelected = !readOnly && selectedIndex == idx
+
                         Card(
                             onClick = {
                                 if (readOnly) {
-                                    // Mode consultation : ouvre le dialog d'édition pour les textes perso
                                     if (isCustomCategory) textToEdit = textEntity
                                 } else {
-                                    // Mode jeu : lance la partie
                                     onTextSelected(textEntity.idText)
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) Color(0xFFF0F0F0) else Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(0.dp),
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) Color.Black else Color(0xFFE0E0E0)
+                            )
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                if (!readOnly) {
                                     Text(
-                                        text = textEntity.title,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = textEntity.content,
+                                        text = "${idx + 1}",
                                         fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
                                         color = Color.Gray,
-                                        maxLines = 2,
-                                        lineHeight = 18.sp
+                                        modifier = Modifier.padding(end = 12.dp).width(16.dp)
                                     )
                                 }
-
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = textEntity.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp)
+                                }
                                 Spacer(modifier = Modifier.width(12.dp))
-
-                                // En mode readOnly textes perso : icône crayon, sinon flèche
                                 Surface(
                                     shape = MaterialTheme.shapes.extraLarge,
                                     color = Color.Black,
@@ -190,52 +220,46 @@ fun TextListScreen(
         }
     }
 
-    // --- Dialog d'ajout ---
     if (showAddDialog) {
         TextDialog(
-            title = "",
-            content = "",
-            dialogTitle = "Nouveau texte",
-            confirmLabel = "Ajouter",
-            onConfirm = { t, c ->
-                model.addCustomText(t, c)
-                showAddDialog = false
-            },
+            title = "", content = "", dialogTitle = "Nouveau texte", confirmLabel = "Ajouter",
+            onConfirm = { t, c -> model.addCustomText(t, c); showAddDialog = false },
             onDismiss = { showAddDialog = false }
         )
     }
-
-    // --- Dialog d'édition ---
     if (textToEdit != null) {
         TextDialog(
-            title = textToEdit!!.title,
-            content = textToEdit!!.content,
-            dialogTitle = "Modifier le texte",
-            confirmLabel = "Enregistrer",
-            onConfirm = { t, c ->
-                model.updateCustomText(textToEdit!!.idText, t, c)
-                textToEdit = null
-            },
+            title = textToEdit!!.title, content = textToEdit!!.content,
+            dialogTitle = "Modifier le texte", confirmLabel = "Enregistrer",
+            onConfirm = { t, c -> model.updateCustomText(textToEdit!!.idText, t, c); textToEdit = null },
             onDismiss = { textToEdit = null }
         )
     }
 }
 
-/**
- * TextDialog
- *
- * Dialog réutilisable pour ajouter ou modifier un texte personnalisé.
- */
+private suspend fun announceList(model: MainViewModel, texts: List<TextEntity>) {
+    val count = texts.take(9).size
+    val intro = "Vous avez $count texte${if (count > 1) "s" else ""} disponible${if (count > 1) "s" else ""}. "
+    val items = texts.take(9).mapIndexed { i, t -> "Numéro ${i + 1}  ${t.title}" }.joinToString(" ")
+    val hint  = " Appuyez sur le numéro du texte souhaité ou sur Étoile pour répéter la liste"
+    model.speak(intro + items + hint)
+}
+
+private fun keyCodeToIndex(keyCode: Int): Int? = when (keyCode) {
+    KeyEvent.KEYCODE_1 -> 0; KeyEvent.KEYCODE_2 -> 1; KeyEvent.KEYCODE_3 -> 2
+    KeyEvent.KEYCODE_4 -> 3; KeyEvent.KEYCODE_5 -> 4; KeyEvent.KEYCODE_6 -> 5
+    KeyEvent.KEYCODE_7 -> 6; KeyEvent.KEYCODE_8 -> 7; KeyEvent.KEYCODE_9 -> 8
+    else -> null
+}
+
 @Composable
 fun TextDialog(
-    title: String,
-    content: String,
-    dialogTitle: String,
-    confirmLabel: String,
+    title: String, content: String,
+    dialogTitle: String, confirmLabel: String,
     onConfirm: (title: String, content: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var currentTitle by remember { mutableStateOf(title) }
+    var currentTitle   by remember { mutableStateOf(title) }
     var currentContent by remember { mutableStateOf(content) }
 
     AlertDialog(
@@ -244,37 +268,21 @@ fun TextDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = currentTitle,
-                    onValueChange = { currentTitle = it },
-                    label = { Text("Titre") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    value = currentTitle, onValueChange = { currentTitle = it },
+                    label = { Text("Titre") }, singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = currentContent,
-                    onValueChange = { currentContent = it },
-                    label = { Text("Contenu") },
-                    minLines = 4,
-                    modifier = Modifier.fillMaxWidth()
+                    value = currentContent, onValueChange = { currentContent = it },
+                    label = { Text("Contenu") }, minLines = 4, modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    if (currentTitle.isNotBlank() && currentContent.isNotBlank()) {
-                        onConfirm(currentTitle, currentContent)
-                    }
-                },
+                onClick = { if (currentTitle.isNotBlank() && currentContent.isNotBlank()) onConfirm(currentTitle, currentContent) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-            ) {
-                Text(confirmLabel, color = Color.White)
-            }
+            ) { Text(confirmLabel, color = Color.White) }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Annuler", color = Color.Gray)
-            }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", color = Color.Gray) } }
     )
 }

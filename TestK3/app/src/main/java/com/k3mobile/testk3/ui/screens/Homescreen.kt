@@ -1,41 +1,145 @@
 package com.k3mobile.testk3.ui.screens
 
+import android.content.Intent
+import android.provider.Settings
+import android.view.KeyEvent
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.k3mobile.testk3.main.K3AccessibilityService
+import com.k3mobile.testk3.ui.MainViewModel
 
-/**
- * HomeScreen
- *
- * Écran de choix du type de partie, affiché après le WelcomeScreen.
- * Propose une partie rapide (paramètres par défaut) ou une partie personnalisée.
- *
- * @param onPartieRapide Appelé pour lancer une partie avec les paramètres par défaut
- * @param onPartiePersonnalisee Appelé pour ouvrir l'écran de paramétrage
- * @param onSettings Appelé pour ouvrir les paramètres de l'application
- */
+private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
+    val am = context.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+    return am.getEnabledAccessibilityServiceList(
+        android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+    ).any { info ->
+        info.resolveInfo.serviceInfo.packageName == context.packageName &&
+                info.resolveInfo.serviceInfo.name == K3AccessibilityService::class.java.name
+    }
+}
+
 @Composable
 fun HomeScreen(
-    onPartieRapide: () -> Unit = {},
+    model: MainViewModel,
     onPartiePersonnalisee: () -> Unit,
     onSettings: () -> Unit = {}
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    val context        = LocalContext.current
+    val isTtsReady     by model.isTtsReady.collectAsState()
+    // LocalLifecycleOwner de androidx.compose.ui.platform — disponible sans dépendance additionnelle
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-        // Bouton paramètres en haut à droite
+    var serviceEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
+
+    // Re-vérifie à chaque ON_RESUME (retour depuis les paramètres d'accessibilité).
+    // LifecycleEventObserver ne nécessite pas lifecycle-runtime-compose.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                serviceEnabled = isAccessibilityServiceEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Écran noir dès l'arrivée
+    DisposableEffect(Unit) {
+        model.dimScreen()
+        onDispose { model.normalScreen() }
+    }
+
+    // Annonce d'accueil quand TTS prêt
+    LaunchedEffect(isTtsReady) {
+        if (isTtsReady) {
+            model.speak(
+                "Bienvenue sur K3 Audio Type " +
+                        "Appuyez sur Entrée pour lancer une partie " +
+                        "ou sur la touche S pour accéder aux paramètres"
+            )
+        }
+    }
+
+    // Touches clavier
+    LaunchedEffect(Unit) {
+        model.keyEvent.collect { keyCode ->
+            when (keyCode) {
+                KeyEvent.KEYCODE_ENTER -> { model.stopSpeaking(); onPartiePersonnalisee() }
+                KeyEvent.KEYCODE_S     -> { model.stopSpeaking(); onSettings() }
+            }
+        }
+    }
+
+    // ── Dialog "Activer le service d'accessibilité" ───────────────────────────
+    if (!serviceEnabled) {
+        AlertDialog(
+            onDismissRequest = { /* non-annulable */ },
+            icon  = { Text("⌨", fontSize = 36.sp) },
+            title = {
+                Text(
+                    text = "Autorisation requise",
+                    fontWeight = FontWeight.Bold,
+                    textAlign  = TextAlign.Center
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "K3AudioType a besoin d'être activé en tant que service " +
+                                "d'accessibilité pour recevoir les touches clavier même " +
+                                "lorsque l'écran est verrouillé",
+                        textAlign = TextAlign.Center,
+                        fontSize  = 14.sp
+                    )
+                    Text(
+                        text = "Dans l'écran qui va s'ouvrir :\n" +
+                                "1. Trouvez « K3AudioType » dans la liste\n" +
+                                "2. Activez-le\n" +
+                                "3. Confirmez la permission",
+                        fontSize   = 13.sp,
+                        lineHeight = 20.sp,
+                        color      = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onBackground
+                    )
+                ) {
+                    Text("Ouvrir les paramètres", color = MaterialTheme.colorScheme.background)
+                }
+            }
+        )
+    }
+
+    // ── UI principale ─────────────────────────────────────────────────────────
+    Box(modifier = Modifier.fillMaxSize()) {
         IconButton(
             onClick = onSettings,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(8.dp)
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
         ) {
             Icon(Icons.Default.Settings, contentDescription = "Paramètres")
         }
@@ -47,24 +151,16 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
-            // Logo + nom de l'app
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Icône placeholder — remplace par ton vrai logo avec Image(painterResource(...))
                 Text(text = "⌨", fontSize = 32.sp)
-                Text(
-                    text = "K3AudioType",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "K3AudioType", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(64.dp))
 
-            // Bouton principal : partie personnalisée
             Button(
                 onClick = onPartiePersonnalisee,
                 modifier = Modifier.fillMaxWidth(),
@@ -74,7 +170,7 @@ fun HomeScreen(
             ) {
                 Text(
                     "Lancer une partie",
-                    color = MaterialTheme.colorScheme.background,
+                    color    = MaterialTheme.colorScheme.background,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }

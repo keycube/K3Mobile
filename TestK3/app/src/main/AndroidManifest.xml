@@ -2,6 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Foreground Service obligatoire depuis Android 9 (API 28) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Requis depuis Android 14 (API 34) : précise le type du service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!-- Optionnel : empêche le CPU de dormir pendant la dictée écran éteint -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -22,6 +31,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".main.TypingForegroundService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <service
+            android:name=".main.K3AccessibilityService"
+            android:exported="true"
+            android:label="K3AudioType"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/k3_accessibility_service" />
+        </service>
     </application>
 
 </manifest>

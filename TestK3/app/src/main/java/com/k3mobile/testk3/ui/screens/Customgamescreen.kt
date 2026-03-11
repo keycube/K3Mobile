@@ -1,5 +1,6 @@
 package com.k3mobile.testk3.ui.screens
 
+import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -10,66 +11,126 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.k3mobile.testk3.ui.MainViewModel
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-/**
- * CustomGameScreen
- *
- * Écran de paramétrage d'une partie personnalisée.
- * L'utilisateur choisit le type de texte et la vitesse de lecture audio.
- *
- * @param onConfirmer Appelé avec la catégorie choisie et la vitesse (mots/sec) pour lancer la partie
- * @param onAnnuler Appelé si l'utilisateur annule et revient en arrière
- * @param onSettings Appelé pour ouvrir les paramètres de l'application
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomGameScreen(
+    model: MainViewModel,
     onConfirmer: (category: String, speed: Float) -> Unit,
     onAnnuler: () -> Unit,
     onSettings: () -> Unit = {}
 ) {
-    // Catégories disponibles en base de données
-    val categories = listOf("Phrases", "Histoires", "Textes Personnalisés")
+    val categoryLabels = listOf("Phrases", "Histoires", "Textes personnalisés")
+    val categoryDb     = listOf("phrases", "histoires", "textes personnalisées")
+    val speedLabels    = listOf("lente", "normale", "rapide", "très rapide", "maximale")
+    val speedValues    = listOf(1f, 1.5f, 2f, 2.5f, 3f)
 
-    // État du dropdown
-    var expanded by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf(categories[0]) }
+    var categoryIndex by remember { mutableStateOf(0) }
+    var speedIndex    by remember { mutableStateOf(1) }
+    var step          by remember { mutableStateOf(AudioStep.CATEGORY) }
 
-    // Vitesse audio : 1 à 3 mots/sec, valeur par défaut 1
-    var speed by remember { mutableStateOf(1f) }
+    val speed = speedValues[speedIndex]
+
+    // Écran noir dès l'arrivée, luminosité normale à la sortie
+    DisposableEffect(Unit) {
+        model.dimScreen()
+        onDispose { model.normalScreen() }
+    }
+
+    // Annonce à chaque changement d'étape
+    LaunchedEffect(step) {
+        when (step) {
+            AudioStep.CATEGORY -> model.speak(
+                "Choisissez le type de texte " +
+                        "1 pour Phrases 2 pour Histoires 3 pour Textes personnalisés"
+            )
+            AudioStep.SPEED -> model.speak(
+                "Choisissez la vitesse audio " +
+                        "1 pour lente 2 normale 3 rapide 4 très rapide 5 maximale"
+            )
+            AudioStep.CONFIRM -> model.speak(
+                "Type de texte  ${categoryLabels[categoryIndex]}. " +
+                        "Vitesse  ${speedLabels[speedIndex]}. " +
+                        "Appuyez sur Entrée pour confirmer " +
+                        "ou sur Retour arrière pour recommencer"
+            )
+        }
+    }
+
+    // Écoute des touches
+    LaunchedEffect("keys") {
+        model.keyEvent.collect { keyCode ->
+            when (step) {
+                AudioStep.CATEGORY -> {
+                    val idx = when (keyCode) {
+                        KeyEvent.KEYCODE_1 -> 0
+                        KeyEvent.KEYCODE_2 -> 1
+                        KeyEvent.KEYCODE_3 -> 2
+                        else -> -1
+                    }
+                    if (idx >= 0) {
+                        categoryIndex = idx
+                        model.speak("${categoryLabels[idx]} sélectionné")
+                        delay(1200)
+                        step = AudioStep.SPEED
+                    } else if (keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_BACK) {
+                        model.stopSpeaking()
+                        onAnnuler()
+                    }
+                }
+                AudioStep.SPEED -> {
+                    val idx = when (keyCode) {
+                        KeyEvent.KEYCODE_1 -> 0
+                        KeyEvent.KEYCODE_2 -> 1
+                        KeyEvent.KEYCODE_3 -> 2
+                        KeyEvent.KEYCODE_4 -> 3
+                        KeyEvent.KEYCODE_5 -> 4
+                        else -> -1
+                    }
+                    if (idx >= 0) {
+                        speedIndex = idx
+                        model.speak("Vitesse ${speedLabels[idx]} sélectionnée")
+                        delay(1200)
+                        step = AudioStep.CONFIRM
+                    } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+                        step = AudioStep.CATEGORY
+                    }
+                }
+                AudioStep.CONFIRM -> {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_ENTER -> {
+                            model.stopSpeaking()
+                            onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
+                        }
+                        KeyEvent.KEYCODE_DEL -> step = AudioStep.CATEGORY
+                    }
+                }
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
-        // Bouton paramètres en haut à droite
         IconButton(
             onClick = onSettings,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(8.dp)
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
         ) {
             Icon(Icons.Default.Settings, contentDescription = "Paramètres")
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
-            // Logo + nom de l'app
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = "⌨", fontSize = 28.sp)
-                Text(
-                    text = "K3AudioType",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "K3AudioType", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -83,41 +144,34 @@ fun CustomGameScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- Dropdown : Type de texte ---
+            StepIndicator(currentStep = step)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = "Type de texte :",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
             )
 
+            var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedCategory,
+                    value = categoryLabels[categoryIndex],
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    categories.forEach { category ->
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    categoryLabels.forEachIndexed { idx, label ->
                         DropdownMenuItem(
-                            text = { Text(category) },
-                            onClick = {
-                                selectedCategory = category
-                                expanded = false
-                            }
+                            text = { Text(label) },
+                            onClick = { categoryIndex = idx; expanded = false }
                         )
                     }
                 }
@@ -125,20 +179,19 @@ fun CustomGameScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- Slider : Vitesse de l'audio ---
             Text(
                 text = "Vitesse de l'audio :",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
             )
 
             Slider(
                 value = speed,
-                onValueChange = { speed = it },
+                onValueChange = { newVal ->
+                    speedIndex = speedValues.indexOfFirst { it >= newVal }.coerceAtLeast(0)
+                },
                 valueRange = 1f..3f,
-                steps = 3, // Valeurs : 1, 1.5, 2, 2.5, 3
+                steps = 3,
                 modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.onBackground,
@@ -147,42 +200,64 @@ fun CustomGameScreen(
             )
 
             Text(
-                text = "${(speed * 10).roundToInt() / 10f} Mots/sec",
+                text = "${speedLabels[speedIndex]} — ${(speed * 10).roundToInt() / 10f} mots/sec",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // --- Boutons d'action ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TextButton(onClick = onAnnuler) {
-                    Text("Annuler")
-                }
-
+                TextButton(onClick = onAnnuler) { Text("Annuler") }
                 Button(
-                    onClick = {
-                        // Convertit le nom affiché vers la valeur en base de données
-                        val categoryDb = when (selectedCategory) {
-                            "Phrases" -> "phrases"
-                            "Histoires" -> "histoires"
-                            "Textes Personnalisés" -> "textes personnalisées"
-                            else -> "phrases"
-                        }
-                        onConfirmer(categoryDb, speed)
-                    },
+                    onClick = { onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex]) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onBackground
                     )
                 ) {
-                    Text(
-                        "Confirmer",
-                        color = MaterialTheme.colorScheme.background
-                    )
+                    Text("Confirmer", color = MaterialTheme.colorScheme.background)
                 }
+            }
+        }
+    }
+}
+
+enum class AudioStep { CATEGORY, SPEED, CONFIRM }
+
+@Composable
+private fun StepIndicator(currentStep: AudioStep) {
+    val steps = listOf("Type de texte", "Vitesse", "Confirmation")
+    val currentIdx = currentStep.ordinal
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { idx, label ->
+            val active = idx == currentIdx
+            val done   = idx < currentIdx
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = when {
+                    active -> MaterialTheme.colorScheme.onBackground
+                    done   -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    else   -> MaterialTheme.colorScheme.surfaceVariant
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "${idx + 1}. $label",
+                    fontSize = 11.sp,
+                    color = when {
+                        active || done -> MaterialTheme.colorScheme.background
+                        else           -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
             }
         }
     }

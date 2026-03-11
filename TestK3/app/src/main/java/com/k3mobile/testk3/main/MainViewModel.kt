@@ -9,6 +9,7 @@ import com.k3mobile.testk3.data.AppDatabase
 import com.k3mobile.testk3.data.SessionWithTitle
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.data.SessionEntity
+import com.k3mobile.testk3.main.K3AppState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -17,17 +18,47 @@ import java.util.Locale
 class MainViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     private val dao = AppDatabase.getDatabase(application, viewModelScope).typingDao()
-
     private var tts: TextToSpeech? = null
-    private var isTtsReady = false
 
-    // --- Voix disponibles ---
+    // -------------------------------------------------------------------------
+    // État TTS
+    // -------------------------------------------------------------------------
 
-    // Liste des voix françaises disponibles sur l'appareil
+    private val _isTtsReady = MutableStateFlow(false)
+    val isTtsReady = _isTtsReady.asStateFlow()
+
+    // -------------------------------------------------------------------------
+    // Luminosité écran
+    // -------------------------------------------------------------------------
+
+    private val _screenBrightness = MutableStateFlow(-1f)
+    val screenBrightness = _screenBrightness.asStateFlow()
+
+    fun setScreenBrightness(brightness: Float) { _screenBrightness.value = brightness.coerceIn(-1f, 1f) }
+    fun dimScreen()    = setScreenBrightness(0f)
+    fun normalScreen() = setScreenBrightness(-1f)
+    fun brightScreen() = setScreenBrightness(1f)
+
+    // -------------------------------------------------------------------------
+    // Navigation clavier — délégué à K3AppState
+    // -------------------------------------------------------------------------
+
+    val keyEvent = K3AppState.keyEvent
+
+    var isInTypingMode: Boolean
+        get()      = K3AppState.isInTypingMode
+        set(value) { K3AppState.isInTypingMode = value }
+
+    // Fallback si le service d'accessibilité n'est pas actif
+    fun emitKeyEvent(keyCode: Int) = K3AppState.emitKey(keyCode)
+
+    // -------------------------------------------------------------------------
+    // Voix
+    // -------------------------------------------------------------------------
+
     private val _availableVoices = MutableStateFlow<List<Voice>>(emptyList())
     val availableVoices = _availableVoices.asStateFlow()
 
-    // Voix actuellement sélectionnée (null = voix par défaut)
     private val _selectedVoice = MutableStateFlow<Voice?>(null)
     val selectedVoice = _selectedVoice.asStateFlow()
 
@@ -36,87 +67,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     override fun onInit(status: Int) {
-        tts?.setSpeechRate(0.65f)
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale.FRENCH)
+            val result = tts?.setLanguage(java.util.Locale.FRENCH)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-                isTtsReady = true
+                tts?.setSpeechRate(0.65f)
                 loadAvailableVoices()
+                _isTtsReady.value = true
             }
         }
     }
 
-    /**
-     * Récupère toutes les voix françaises disponibles sur l'appareil
-     * et les trie par nom pour un affichage cohérent.
-     */
     private fun loadAvailableVoices() {
         val voices = tts?.voices
-            ?.filter { voice ->
-                voice.locale.language == "fr" && !voice.isNetworkConnectionRequired
-            }
+            ?.filter { it.locale.language == "fr" && !it.isNetworkConnectionRequired }
             ?.sortedBy { it.name }
             ?: emptyList()
-
         _availableVoices.value = voices
-
-        // Pré-sélectionne la voix active du moteur TTS si disponible
         _selectedVoice.value = tts?.voice
     }
 
-    /**
-     * Applique une voix choisie par l'utilisateur.
-     * La mémorise dans le ViewModel pour la session en cours.
-     */
     fun selectVoice(voice: Voice) {
         tts?.voice = voice
         _selectedVoice.value = voice
     }
 
-    /**
-     * Joue un aperçu de la voix donnée avec une phrase d'exemple,
-     * puis restaure la voix sélectionnée.
-     */
     fun previewVoice(voice: Voice) {
-        if (!isTtsReady) return
-        val previousVoice = tts?.voice
+        if (!_isTtsReady.value) return
+        val prev = tts?.voice
         tts?.voice = voice
-        tts?.speak(
-            "Bonjour, voici un aperçu de ma voix.",
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            "VoicePreview"
-        )
-        // Restaure la voix sélectionnée après la lecture si ce n'est pas celle qu'on prévisualise
-        if (previousVoice != null && previousVoice.name != voice.name && _selectedVoice.value?.name != voice.name) {
-            tts?.voice = _selectedVoice.value ?: previousVoice
+        tts?.speak("Bonjour, voici un aperçu de ma voix.", TextToSpeech.QUEUE_FLUSH, null, "VoicePreview")
+        if (prev != null && prev.name != voice.name && _selectedVoice.value?.name != voice.name) {
+            tts?.voice = _selectedVoice.value ?: prev
         }
     }
 
+    // -------------------------------------------------------------------------
+    // TTS — lecture
+    // -------------------------------------------------------------------------
+
     fun speak(text: String) {
-        if (isTtsReady) {
-            val textToSpeak = text
-                .replace(".", " point ")
-                .replace(",", " virgule ")
-                .replace("!", " point d'exclamation ")
-                .replace("?", " point d'interrogation ")
-                .replace(";", " point virgule ")
-                .replace(":", " deux points ")
-            tts?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, "UtteranceID")
-        }
+        if (!_isTtsReady.value) return
+        val cleaned = text
+            .replace(".", " point ")
+            .replace(",", " virgule ")
+            .replace("!", " point d'exclamation ")
+            .replace("?", " point d'interrogation ")
+            .replace(";", " point virgule ")
+            .replace(":", " deux points ")
+        tts?.speak(cleaned, TextToSpeech.QUEUE_FLUSH, null, "speak_${System.currentTimeMillis()}")
+    }
+
+    fun speakQueued(text: String) {
+        if (!_isTtsReady.value) return
+        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "queued_${System.currentTimeMillis()}")
     }
 
     fun stopSpeaking() {
-        if (isTtsReady) tts?.stop()
+        if (_isTtsReady.value) tts?.stop()
     }
 
-    /**
-     * Modifie la vitesse de lecture du TTS.
-     * @param rate vitesse en mots/sec (1.0 = normal, 0.5 = lent, 2.0 = rapide)
-     *             Converti en speechRate TTS : 1 mot/sec ≈ 0.65 de speechRate
-     */
     fun setSpeechRate(rate: Float) {
-        // On mappe la plage 1–3 mots/sec vers une plage TTS 0.4–1.2
         val ttsRate = 0.4f + ((rate - 1f) / 2f) * 0.8f
         tts?.setSpeechRate(ttsRate)
     }
@@ -127,29 +137,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         super.onCleared()
     }
 
-    // --- Texts ---
+    // -------------------------------------------------------------------------
+    // Textes
+    // -------------------------------------------------------------------------
 
     private val _texts = MutableStateFlow<List<TextEntity>>(emptyList())
     val texts = _texts.asStateFlow()
 
     fun loadTextsByCategory(category: String) {
-        viewModelScope.launch {
-            _texts.value = dao.getTextsByCategory(category)
-        }
+        viewModelScope.launch { _texts.value = dao.getTextsByCategory(category) }
     }
 
     fun addCustomText(title: String, content: String) {
         viewModelScope.launch {
-            dao.insertText(
-                TextEntity(
-                    idText = 0,
-                    title = title,
-                    content = content,
-                    language = "fr",
-                    category = "textes personnalisées",
-                    difficulty = 1
-                )
-            )
+            dao.insertText(TextEntity(0, title, content, "fr", "textes personnalisées", 1))
             loadTextsByCategory("textes personnalisées")
         }
     }
@@ -161,7 +162,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    // --- Sessions ---
+    // -------------------------------------------------------------------------
+    // Sessions
+    // -------------------------------------------------------------------------
 
     private val _sessions = MutableStateFlow<List<SessionEntity>>(emptyList())
     val sessions = _sessions.asStateFlow()
@@ -178,15 +181,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun saveSession(textId: Long, durationMillis: Long, wpm: Double, accuracy: Double) {
         viewModelScope.launch {
-            dao.insertSession(
-                SessionEntity(
-                    textId = textId,
-                    duration = durationMillis,
-                    wpm = wpm,
-                    accuracy = accuracy,
-                    timeStamp = System.currentTimeMillis()
-                )
-            )
+            dao.insertSession(SessionEntity(textId = textId, duration = durationMillis, wpm = wpm, accuracy = accuracy, timeStamp = System.currentTimeMillis()))
         }
     }
 }

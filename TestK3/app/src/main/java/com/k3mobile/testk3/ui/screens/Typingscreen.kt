@@ -1,5 +1,6 @@
 package com.k3mobile.testk3.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,23 +11,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.data.TextEntity
+import com.k3mobile.testk3.main.TypingForegroundService
 import com.k3mobile.testk3.ui.MainViewModel
+import kotlinx.coroutines.delay
 
-/**
- * TypingScreen
- *
- * Écran d'exercice de frappe.
- *
- * @param textId ID du texte à taper
- * @param model ViewModel partagé
- * @param onBack Appelé quand l'utilisateur appuie sur "Quitter" → revient à la liste des textes
- * @param onFinished Appelé quand l'utilisateur termine le texte → revient à l'accueil
- */
 @Composable
 fun TypingScreen(
     textId: Long,
@@ -54,6 +48,8 @@ private fun TypingContent(
     onBack: () -> Unit,
     onFinished: () -> Unit
 ) {
+    val context = LocalContext.current
+
     val sentences = remember(textEntity.content) {
         textEntity.content
             .split(Regex("(?<=[.!?])\\s+"))
@@ -62,21 +58,60 @@ private fun TypingContent(
     }
 
     var currentSentenceIndex by remember { mutableStateOf(0) }
-    var userInput by remember { mutableStateOf("") }
-    var totalTypedChars by remember { mutableStateOf(0) }
-    var totalDistance by remember { mutableStateOf(0) }
-    var totalEvaluatedChars by remember { mutableStateOf(0) }
-    val startTime = remember { System.currentTimeMillis() }
-    val focusRequester = remember { FocusRequester() }
+    var userInput            by remember { mutableStateOf("") }
+    var totalTypedChars      by remember { mutableStateOf(0) }
+    var totalDistance        by remember { mutableStateOf(0) }
+    var totalEvaluatedChars  by remember { mutableStateOf(0) }
+    val startTime            = remember { System.currentTimeMillis() }
+    val focusRequester       = remember { FocusRequester() }
+    var hasStarted           by remember { mutableStateOf(false) }
 
-    LaunchedEffect(currentSentenceIndex) {
-        if (currentSentenceIndex < sentences.size) {
+    // Écran plein pendant la saisie, retour à l'écran noir quand on sort
+    DisposableEffect(Unit) {
+        model.brightScreen()
+        onDispose { model.dimScreen() }
+    }
+
+    // Mode saisie : les touches vont au TextField, pas au guide audio
+    DisposableEffect(Unit) {
+        model.isInTypingMode = true
+        onDispose { model.isInTypingMode = false }
+    }
+
+    // Compte à rebours + lancement
+    LaunchedEffect(Unit) {
+        val notifIntent = Intent(context, TypingForegroundService::class.java).apply {
+            putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY)
+        }
+        context.startService(notifIntent)
+
+        model.speak("Préparez-vous à écrire")
+        delay(1_800)
+        model.speakQueued("3")
+        delay(900)
+        model.speakQueued("2")
+        delay(900)
+        model.speakQueued("1")
+        delay(900)
+
+        val typingIntent = Intent(context, TypingForegroundService::class.java).apply {
+            putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING)
+        }
+        context.startService(typingIntent)
+
+        hasStarted = true
+        focusRequester.requestFocus()
+    }
+
+    // Dictée de chaque phrase
+    LaunchedEffect(currentSentenceIndex, hasStarted) {
+        if (hasStarted && currentSentenceIndex < sentences.size) {
             model.speak(sentences[currentSentenceIndex])
         }
     }
 
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+    LaunchedEffect(hasStarted) {
+        if (hasStarted) focusRequester.requestFocus()
     }
 
     fun String.normalize(): String = this
@@ -88,66 +123,76 @@ private fun TypingContent(
         .replace("\n", "").replace("\r", "")
         .trim()
 
-    val rawTarget = sentences[currentSentenceIndex]
-    val cleanTarget = rawTarget.normalize()
-    val cleanInput = userInput.normalize()
-
-    val isError = userInput.isNotEmpty() && !cleanTarget.startsWith(cleanInput)
+    val rawTarget          = sentences[currentSentenceIndex]
+    val cleanTarget        = rawTarget.normalize()
+    val cleanInput         = userInput.normalize()
+    val isError            = userInput.isNotEmpty() && !cleanTarget.startsWith(cleanInput)
     val isFinishedSentence = cleanInput == cleanTarget
 
     fun goToNextSentence() {
         val ci = userInput.normalize()
         val ct = rawTarget.normalize()
 
-        totalTypedChars += ci.length
-        val distance = calculateLevenshteinDistance(ci, ct)
-        totalDistance += distance
+        totalTypedChars     += ci.length
+        val distance         = calculateLevenshteinDistance(ci, ct)
+        totalDistance       += distance
         totalEvaluatedChars += maxOf(ci.length, ct.length)
 
         if (currentSentenceIndex < sentences.lastIndex) {
             currentSentenceIndex++
             userInput = ""
         } else {
-            // Fin du texte : sauvegarde et retour à l'accueil
             val duration = System.currentTimeMillis() - startTime
-            val minutes = duration / 60000.0
-            val wpm = if (minutes > 0) (totalTypedChars / 5.0) / minutes else 0.0
+            val minutes  = duration / 60_000.0
+            val wpm      = if (minutes > 0) (totalTypedChars / 5.0) / minutes else 0.0
             val accuracy = if (totalEvaluatedChars > 0) {
                 ((totalEvaluatedChars - totalDistance).toDouble() / totalEvaluatedChars) * 100
             } else 0.0
 
             model.saveSession(textEntity.idText, duration, wpm, accuracy)
+            model.speak("Bravo  Exercice terminé")
             model.stopSpeaking()
-            onFinished() // ← retour à HomeScreen
+            onFinished()
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+
         IconButton(onClick = {
             model.stopSpeaking()
-            onBack() // ← retour à la liste des textes
+            onBack()
         }) {
             Text("⬅ Quitter")
         }
 
         LinearProgressIndicator(
-            progress = (currentSentenceIndex + 1).toFloat() / sentences.size,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
+            progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (!hasStarted) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Préparez-vous…",
+                    fontSize = 18.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         Text(
             text = rawTarget,
             fontSize = 22.sp,
             lineHeight = 32.sp,
-            color = if (isFinishedSentence) Color(0xFF4CAF50) else Color.Black,
+            color = when {
+                !hasStarted        -> Color.LightGray
+                isFinishedSentence -> Color(0xFF4CAF50)
+                else               -> Color.Black
+            },
             fontWeight = FontWeight.Medium
         )
 
@@ -155,16 +200,31 @@ private fun TypingContent(
 
         OutlinedTextField(
             value = userInput,
-            onValueChange = { newValue -> userInput = newValue.replace("\n", "") },
-            label = { Text("Tapez le texte...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
+            onValueChange = { newValue ->
+                if (hasStarted) userInput = newValue.replace("\n", "")
+            },
+            label = { Text(if (hasStarted) "Tapez le texte…" else "En attente…") },
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            enabled = hasStarted,
             isError = isError,
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { goToNextSentence() })
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = "Phrase ${currentSentenceIndex + 1} / ${sentences.size}",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            when {
+                isError            -> Text("❌ Correction nécessaire", fontSize = 12.sp, color = Color(0xFFE53935))
+                isFinishedSentence -> Text("✅ Appuyez sur Entrée", fontSize = 12.sp, color = Color(0xFF4CAF50))
+            }
+        }
     }
 }
 
