@@ -12,7 +12,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.ui.MainViewModel
-import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,36 +33,19 @@ fun CustomGameScreen(
 
     val speed = speedValues[speedIndex]
 
-    // Écran noir dès l'arrivée, luminosité normale à la sortie
-    DisposableEffect(Unit) {
-        model.dimScreen()
-        onDispose { model.normalScreen() }
+    LaunchedEffect(Unit) {
+        model.speak(
+            "Choisissez le type de texte. " +
+                    "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+        )
     }
 
-    // Annonce à chaque changement d'étape
-    LaunchedEffect(step) {
-        when (step) {
-            AudioStep.CATEGORY -> model.speak(
-                "Choisissez le type de texte " +
-                        "1 pour Phrases 2 pour Histoires 3 pour Textes personnalisés"
-            )
-            AudioStep.SPEED -> model.speak(
-                "Choisissez la vitesse audio " +
-                        "1 pour lente 2 normale 3 rapide 4 très rapide 5 maximale"
-            )
-            AudioStep.CONFIRM -> model.speak(
-                "Type de texte  ${categoryLabels[categoryIndex]}. " +
-                        "Vitesse  ${speedLabels[speedIndex]}. " +
-                        "Appuyez sur Entrée pour confirmer " +
-                        "ou sur Retour arrière pour recommencer"
-            )
-        }
-    }
-
-    // Écoute des touches
     LaunchedEffect("keys") {
-        model.keyEvent.collect { keyCode ->
+        for (event in model.keyChannel) {
+
+            val keyCode = event.keyCode
             when (step) {
+
                 AudioStep.CATEGORY -> {
                     val idx = when (keyCode) {
                         KeyEvent.KEYCODE_1 -> 0
@@ -73,14 +55,18 @@ fun CustomGameScreen(
                     }
                     if (idx >= 0) {
                         categoryIndex = idx
-                        model.speak("${categoryLabels[idx]} sélectionné")
-                        delay(1200)
+                        model.speak("${categoryLabels[idx]} sélectionné.")
+                        model.speakQueued(
+                            "Choisissez la vitesse audio. " +
+                                    "1 pour lente. 2 normale. 3 rapide. 4 très rapide. 5 maximale."
+                        )
                         step = AudioStep.SPEED
                     } else if (keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_BACK) {
                         model.stopSpeaking()
                         onAnnuler()
                     }
                 }
+
                 AudioStep.SPEED -> {
                     val idx = when (keyCode) {
                         KeyEvent.KEYCODE_1 -> 0
@@ -92,20 +78,37 @@ fun CustomGameScreen(
                     }
                     if (idx >= 0) {
                         speedIndex = idx
-                        model.speak("Vitesse ${speedLabels[idx]} sélectionnée")
-                        delay(1200)
+                        model.speak("Vitesse ${speedLabels[idx]} sélectionnée.")
+                        model.speakQueued(
+                            "Récapitulatif. " +
+                                    "Type de texte : ${categoryLabels[categoryIndex]}. " +
+                                    "Vitesse : ${speedLabels[idx]}. " +
+                                    "Appuyez sur Entrée pour confirmer, " +
+                                    "ou sur Retour arrière pour recommencer."
+                        )
                         step = AudioStep.CONFIRM
                     } else if (keyCode == KeyEvent.KEYCODE_DEL) {
+                        model.speak(
+                            "Choisissez le type de texte. " +
+                                    "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+                        )
                         step = AudioStep.CATEGORY
                     }
                 }
+
                 AudioStep.CONFIRM -> {
                     when (keyCode) {
                         KeyEvent.KEYCODE_ENTER -> {
                             model.stopSpeaking()
                             onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
                         }
-                        KeyEvent.KEYCODE_DEL -> step = AudioStep.CATEGORY
+                        KeyEvent.KEYCODE_DEL -> {
+                            model.speak(
+                                "Choisissez le type de texte. " +
+                                        "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+                            )
+                            step = AudioStep.CATEGORY
+                        }
                     }
                 }
             }

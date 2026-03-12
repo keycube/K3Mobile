@@ -15,15 +15,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.k3mobile.testk3.ui.MainViewModel
 import com.k3mobile.testk3.ui.screens.*
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -32,7 +28,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Afficher par-dessus l'écran de verrouillage
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -42,17 +37,6 @@ class MainActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                         WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
-        }
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sharedViewModel.screenBrightness.collect { brightness ->
-                    val params = window.attributes
-                    params.screenBrightness = brightness
-                    window.attributes = params
-                }
-            }
         }
 
         setContent {
@@ -66,8 +50,8 @@ class MainActivity : ComponentActivity() {
                         composable("home") {
                             HomeScreen(
                                 model = viewModel,
-                                onPartiePersonnalisee = { navController.navigate("custom_game") },
-                                onSettings = { navController.navigate("settings") }
+                                onPartiePersonnalisee = { viewModel.resetKeyChannel(); navController.navigate("custom_game") },
+                                onSettings = { viewModel.resetKeyChannel(); navController.navigate("settings") }
                             )
                         }
 
@@ -89,9 +73,10 @@ class MainActivity : ComponentActivity() {
                                 model = viewModel,
                                 onConfirmer = { category, speed ->
                                     viewModel.setSpeechRate(speed)
+                                    viewModel.resetKeyChannel()
                                     navController.navigate("text_list/$category")
                                 },
-                                onAnnuler = { navController.popBackStack() },
+                                onAnnuler = { viewModel.resetKeyChannel(); navController.popBackStack() },
                                 onSettings = { navController.navigate("settings") }
                             )
                         }
@@ -100,8 +85,12 @@ class MainActivity : ComponentActivity() {
                             val category = backStackEntry.arguments?.getString("category") ?: "phrases"
                             TextListScreen(
                                 category = category, model = viewModel,
-                                onTextSelected = { textId -> navController.navigate("typing/$textId") },
-                                onBack = { navController.popBackStack() }, readOnly = false
+                                onTextSelected = { textId ->
+                                    viewModel.resetKeyChannel()
+                                    navController.navigate("typing/$textId")
+                                },
+                                onBack = { viewModel.resetKeyChannel(); navController.popBackStack() },
+                                readOnly = false
                             )
                         }
 
@@ -131,10 +120,12 @@ class MainActivity : ComponentActivity() {
                                 textId = textId, model = viewModel,
                                 onBack = {
                                     context.stopService(Intent(context, TypingForegroundService::class.java))
+                                    viewModel.resetKeyChannel()
                                     navController.popBackStack()
                                 },
                                 onFinished = {
                                     context.stopService(Intent(context, TypingForegroundService::class.java))
+                                    viewModel.resetKeyChannel()
                                     navController.navigate("home") { popUpTo("home") { inclusive = false } }
                                 }
                             )
@@ -149,9 +140,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Fallback clavier quand le service d'accessibilité n'est pas actif
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.repeatCount > 0) return super.onKeyDown(keyCode, event)
+
+        if (K3AppState.isServiceConnected) {
+            // Le service d'accessibilité a DÉJÀ émis cet événement dans K3AppState.
+            // On retourne true pour CONSOMMER la touche et empêcher MIUI/Android
+            // de générer un second event (via interaction avec l'écran de verrouillage)
+            // qui arriverait dans ce même onKeyDown et produirait un doublon dans le flux.
+            return true
+        }
+
+        // Fallback : service inactif, on émet nous-mêmes
         if (!sharedViewModel.isInTypingMode) {
             sharedViewModel.emitKeyEvent(keyCode)
             return true

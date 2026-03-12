@@ -35,19 +35,16 @@ fun TextListScreen(
     var textToEdit    by remember { mutableStateOf<TextEntity?>(null) }
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
+    var hasNavigated by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        model.pendingTextId = null
+    }
+
     LaunchedEffect(category) {
         model.loadTextsByCategory(category)
     }
 
-    // En mode jeu : écran noir pendant la sélection
-    if (!readOnly) {
-        DisposableEffect(Unit) {
-            model.dimScreen()
-            onDispose { model.normalScreen() }
-        }
-    }
-
-    // Guide audio — uniquement en mode jeu
     if (!readOnly) {
         LaunchedEffect(texts) {
             if (texts.isEmpty()) {
@@ -58,23 +55,27 @@ fun TextListScreen(
         }
 
         LaunchedEffect("keys") {
-            model.keyEvent.collect { keyCode ->
+            for (event in model.keyChannel) {
+                val keyCode    = event.keyCode
                 val digitIndex = keyCodeToIndex(keyCode)
                 when {
                     digitIndex != null && digitIndex < texts.size -> {
-                        selectedIndex = digitIndex
+                        selectedIndex       = digitIndex
+                        model.pendingTextId = texts[digitIndex].idText
                         model.speak(
-                            "Texte sélectionné ${texts[digitIndex].title} " +
+                            "Texte sélectionné ${texts[digitIndex].title}. " +
                                     "Appuyez sur Entrée pour démarrer " +
                                     "ou sur un autre numéro pour changer"
                         )
                     }
                     keyCode == KeyEvent.KEYCODE_ENTER -> {
-                        val idx = selectedIndex
-                        if (idx != null && idx < texts.size) {
+                        val textId = model.pendingTextId
+                        if (textId != null && !hasNavigated) {
+                            hasNavigated = true
+                            model.pendingTextId = null
                             model.stopSpeaking()
-                            onTextSelected(texts[idx].idText)
-                        } else {
+                            onTextSelected(textId)
+                        } else if (textId == null) {
                             model.speak("Veuillez d'abord sélectionner un texte avec son numéro")
                         }
                     }
@@ -83,6 +84,7 @@ fun TextListScreen(
                         announceList(model, texts)
                     }
                     keyCode == KeyEvent.KEYCODE_DEL -> {
+                        model.pendingTextId = null
                         model.stopSpeaking()
                         onBack()
                     }
@@ -167,6 +169,7 @@ fun TextListScreen(
                                 if (readOnly) {
                                     if (isCustomCategory) textToEdit = textEntity
                                 } else {
+                                    model.pendingTextId = null
                                     onTextSelected(textEntity.idText)
                                 }
                             },
@@ -239,8 +242,8 @@ fun TextListScreen(
 
 private suspend fun announceList(model: MainViewModel, texts: List<TextEntity>) {
     val count = texts.take(9).size
-    val intro = "Vous avez $count texte${if (count > 1) "s" else ""} disponible${if (count > 1) "s" else ""}. "
-    val items = texts.take(9).mapIndexed { i, t -> "Numéro ${i + 1}  ${t.title}" }.joinToString(" ")
+    val intro = "Vous avez $count texte${if (count > 1) "s" else ""} disponible${if (count > 1) "s" else ""} "
+    val items = texts.take(9).mapIndexed { i, t -> "Numéro ${i + 1}  ${t.title}" }.joinToString(". ")
     val hint  = " Appuyez sur le numéro du texte souhaité ou sur Étoile pour répéter la liste"
     model.speak(intro + items + hint)
 }

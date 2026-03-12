@@ -1,6 +1,7 @@
 package com.k3mobile.testk3.ui.screens
 
 import android.content.Intent
+import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,6 +21,7 @@ import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.main.TypingForegroundService
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 @Composable
 fun TypingScreen(
@@ -65,63 +67,18 @@ private fun TypingContent(
     val startTime            = remember { System.currentTimeMillis() }
     val focusRequester       = remember { FocusRequester() }
     var hasStarted           by remember { mutableStateOf(false) }
+    var isFinishing          by remember { mutableStateOf(false) }
 
-    // Écran plein pendant la saisie, retour à l'écran noir quand on sort
-    DisposableEffect(Unit) {
-        model.brightScreen()
-        onDispose { model.dimScreen() }
-    }
-
-    // Mode saisie : les touches vont au TextField, pas au guide audio
     DisposableEffect(Unit) {
         model.isInTypingMode = true
         onDispose { model.isInTypingMode = false }
     }
 
-    // Compte à rebours + lancement
-    LaunchedEffect(Unit) {
-        val notifIntent = Intent(context, TypingForegroundService::class.java).apply {
-            putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY)
-        }
-        context.startService(notifIntent)
-
-        model.speak("Préparez-vous à écrire")
-        delay(1_800)
-        model.speakQueued("3")
-        delay(900)
-        model.speakQueued("2")
-        delay(900)
-        model.speakQueued("1")
-        delay(900)
-
-        val typingIntent = Intent(context, TypingForegroundService::class.java).apply {
-            putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING)
-        }
-        context.startService(typingIntent)
-
-        hasStarted = true
-        focusRequester.requestFocus()
-    }
-
-    // Dictée de chaque phrase
-    LaunchedEffect(currentSentenceIndex, hasStarted) {
-        if (hasStarted && currentSentenceIndex < sentences.size) {
-            model.speak(sentences[currentSentenceIndex])
-        }
-    }
-
-    LaunchedEffect(hasStarted) {
-        if (hasStarted) focusRequester.requestFocus()
-    }
-
     fun String.normalize(): String = this
-        .replace("'", "'").replace("'", "'")
-        .replace("…", "...")
-        .replace("œ", "oe").replace("Œ", "Oe")
-        .replace("æ", "ae").replace("Æ", "Ae")
-        .replace("ß", "ss")
-        .replace("\n", "").replace("\r", "")
-        .trim()
+        .replace("\u2019", "'").replace("\u2018", "'")
+        .replace("\u2026", "...").replace("œ", "oe").replace("Œ", "Oe")
+        .replace("æ", "ae").replace("Æ", "Ae").replace("ß", "ss")
+        .replace("\n", "").replace("\r", "").trim()
 
     val rawTarget          = sentences[currentSentenceIndex]
     val cleanTarget        = rawTarget.normalize()
@@ -130,8 +87,9 @@ private fun TypingContent(
     val isFinishedSentence = cleanInput == cleanTarget
 
     fun goToNextSentence() {
+        if (isFinishing) return
         val ci = userInput.normalize()
-        val ct = rawTarget.normalize()
+        val ct = sentences[currentSentenceIndex].normalize()
 
         totalTypedChars     += ci.length
         val distance         = calculateLevenshteinDistance(ci, ct)
@@ -142,26 +100,91 @@ private fun TypingContent(
             currentSentenceIndex++
             userInput = ""
         } else {
-            val duration = System.currentTimeMillis() - startTime
-            val minutes  = duration / 60_000.0
-            val wpm      = if (minutes > 0) (totalTypedChars / 5.0) / minutes else 0.0
-            val accuracy = if (totalEvaluatedChars > 0) {
+            isFinishing = true
+
+            val duration    = System.currentTimeMillis() - startTime
+            val minutes     = duration / 60_000.0
+            val wpm         = if (minutes > 0) (totalTypedChars / 5.0) / minutes else 0.0
+            val accuracy    = if (totalEvaluatedChars > 0)
                 ((totalEvaluatedChars - totalDistance).toDouble() / totalEvaluatedChars) * 100
-            } else 0.0
+            else 0.0
 
             model.saveSession(textEntity.idText, duration, wpm, accuracy)
-            model.speak("Bravo  Exercice terminé")
-            model.stopSpeaking()
-            onFinished()
+
+            val wpmRounded   = wpm.roundToInt()
+            val accRounded   = accuracy.roundToInt()
+            val minPart      = (duration / 60_000).toInt()
+            val secPart      = ((duration % 60_000) / 1_000).toInt()
+            val durationText = if (minPart > 0)
+                "$minPart minute${if (minPart > 1) "s" else ""} et $secPart secondes"
+            else "$secPart secondes"
+
+            model.speakThenDo(
+                phrases = listOf(
+                    "Bravo, exercice terminé.",
+                    "Durée : $durationText.",
+                    "Vitesse : $wpmRounded mots par minute.",
+                    "Précision : $accRounded pourcent.",
+                    "Retour au menu principal."
+                ),
+                onDone = { onFinished() }
+            )
         }
     }
 
+    // Compte à rebours
+    LaunchedEffect(Unit) {
+        context.startService(
+            Intent(context, TypingForegroundService::class.java).apply {
+                putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY)
+            }
+        )
+        model.speak("Préparez-vous à écrire")
+        delay(1_800)
+        model.speakQueued("3"); delay(900)
+        model.speakQueued("2"); delay(900)
+        model.speakQueued("1"); delay(900)
+
+        context.startService(
+            Intent(context, TypingForegroundService::class.java).apply {
+                putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING)
+            }
+        )
+        hasStarted = true
+        focusRequester.requestFocus()
+    }
+
+    // Annonce de chaque nouvelle phrase
+    LaunchedEffect(currentSentenceIndex, hasStarted) {
+        if (hasStarted && currentSentenceIndex < sentences.size && !isFinishing) {
+            model.speak(sentences[currentSentenceIndex])
+        }
+    }
+
+    LaunchedEffect("typing_keys") {
+        for (event in model.keyChannel) {
+            if (!hasStarted || isFinishing) continue
+
+            when {
+                event.keyCode == KeyEvent.KEYCODE_ENTER -> {
+                    val currentClean = userInput.normalize()
+                    val targetClean  = sentences[currentSentenceIndex].normalize()
+                    if (currentClean == targetClean) goToNextSentence()
+                }
+                event.keyCode == KeyEvent.KEYCODE_DEL -> {
+                    if (userInput.isNotEmpty()) userInput = userInput.dropLast(1)
+                }
+                event.unicodeChar > 0 && !Character.isISOControl(event.unicodeChar.toChar()) -> {
+                    userInput += event.unicodeChar.toChar()
+                }
+            }
+        }
+    }
+
+    // UI
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-        IconButton(onClick = {
-            model.stopSpeaking()
-            onBack()
-        }) {
+        IconButton(onClick = { model.stopSpeaking(); onBack() }) {
             Text("⬅ Quitter")
         }
 
@@ -174,12 +197,7 @@ private fun TypingContent(
 
         if (!hasStarted) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Préparez-vous…",
-                    fontSize = 18.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("Préparez-vous…", fontSize = 18.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
             }
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -200,12 +218,10 @@ private fun TypingContent(
 
         OutlinedTextField(
             value = userInput,
-            onValueChange = { newValue ->
-                if (hasStarted) userInput = newValue.replace("\n", "")
-            },
+            onValueChange = { if (hasStarted && !isFinishing) userInput = it.replace("\n", "") },
             label = { Text(if (hasStarted) "Tapez le texte…" else "En attente…") },
             modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-            enabled = hasStarted,
+            enabled = hasStarted && !isFinishing,
             isError = isError,
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -215,12 +231,9 @@ private fun TypingContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = "Phrase ${currentSentenceIndex + 1} / ${sentences.size}",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            Text("Phrase ${currentSentenceIndex + 1} / ${sentences.size}", fontSize = 12.sp, color = Color.Gray)
             when {
+                isFinishing        -> Text("✅ Fin de session…", fontSize = 12.sp, color = Color(0xFF4CAF50))
                 isError            -> Text("❌ Correction nécessaire", fontSize = 12.sp, color = Color(0xFFE53935))
                 isFinishedSentence -> Text("✅ Appuyez sur Entrée", fontSize = 12.sp, color = Color(0xFF4CAF50))
             }
@@ -232,16 +245,12 @@ fun calculateLevenshteinDistance(s1: String, s2: String): Int {
     if (s1 == s2) return 0
     if (s1.isEmpty()) return s2.length
     if (s2.isEmpty()) return s1.length
-
     val d = Array(s1.length + 1) { IntArray(s2.length + 1) }
     for (i in 0..s1.length) d[i][0] = i
     for (j in 0..s2.length) d[0][j] = j
-
-    for (i in 1..s1.length) {
-        for (j in 1..s2.length) {
-            val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
-            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
-        }
+    for (i in 1..s1.length) for (j in 1..s2.length) {
+        val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+        d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
     }
     return d[s1.length][s2.length]
 }

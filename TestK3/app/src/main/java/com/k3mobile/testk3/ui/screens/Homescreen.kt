@@ -40,13 +40,11 @@ fun HomeScreen(
 ) {
     val context        = LocalContext.current
     val isTtsReady     by model.isTtsReady.collectAsState()
-    // LocalLifecycleOwner de androidx.compose.ui.platform — disponible sans dépendance additionnelle
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var serviceEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
+    var serviceEnabled   by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
+    var hasSpokenWelcome by remember { mutableStateOf(false) }
 
-    // Re-vérifie à chaque ON_RESUME (retour depuis les paramètres d'accessibilité).
-    // LifecycleEventObserver ne nécessite pas lifecycle-runtime-compose.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -57,34 +55,26 @@ fun HomeScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Écran noir dès l'arrivée
-    DisposableEffect(Unit) {
-        model.dimScreen()
-        onDispose { model.normalScreen() }
-    }
-
-    // Annonce d'accueil quand TTS prêt
     LaunchedEffect(isTtsReady) {
-        if (isTtsReady) {
+        if (isTtsReady && !hasSpokenWelcome) {
+            hasSpokenWelcome = true
             model.speak(
-                "Bienvenue sur K3 Audio Type " +
-                        "Appuyez sur Entrée pour lancer une partie " +
-                        "ou sur la touche S pour accéder aux paramètres"
+                "Bienvenue sur K3 Audio Type. " +
+                        "Appuyez sur Entrée pour lancer une partie. " +
+                        "ou sur la touche S pour accéder aux paramètres."
             )
         }
     }
 
-    // Touches clavier
     LaunchedEffect(Unit) {
-        model.keyEvent.collect { keyCode ->
-            when (keyCode) {
+        for (event in model.keyChannel) {
+            when (event.keyCode) {
                 KeyEvent.KEYCODE_ENTER -> { model.stopSpeaking(); onPartiePersonnalisee() }
                 KeyEvent.KEYCODE_S     -> { model.stopSpeaking(); onSettings() }
             }
         }
     }
 
-    // ── Dialog "Activer le service d'accessibilité" ───────────────────────────
     if (!serviceEnabled) {
         AlertDialog(
             onDismissRequest = { /* non-annulable */ },
@@ -101,7 +91,7 @@ fun HomeScreen(
                     Text(
                         text = "K3AudioType a besoin d'être activé en tant que service " +
                                 "d'accessibilité pour recevoir les touches clavier même " +
-                                "lorsque l'écran est verrouillé",
+                                "lorsque l'écran est verrouillé.",
                         textAlign = TextAlign.Center,
                         fontSize  = 14.sp
                     )
@@ -135,7 +125,6 @@ fun HomeScreen(
         )
     }
 
-    // ── UI principale ─────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
         IconButton(
             onClick = onSettings,
@@ -145,9 +134,7 @@ fun HomeScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

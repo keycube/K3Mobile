@@ -9,25 +9,28 @@ class K3AccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         serviceInfo = serviceInfo.apply {
-            eventTypes   = 0
-            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            flags        = AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
-            notificationTimeout = 0
+            eventTypes = 0
+            flags = flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
         }
+        // Le service est prêt : MainActivity.onKeyDown() doit maintenant se taire
+        K3AppState.isServiceConnected = true
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         if (event.repeatCount > 0) return false
 
-        return if (K3AppState.isInTypingMode) {
-            false   // laisse la touche atteindre le TextField
-        } else {
-            K3AppState.emitKey(event.keyCode)
-            true    // consomme l'événement
-        }
+        val unicode = event.getUnicodeChar(event.metaState)
+        K3AppState.emitKey(event.keyCode, unicode)
+        return true
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent) = Unit
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
     override fun onInterrupt() = Unit
+
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        // Service désactivé : le fallback onKeyDown peut reprendre
+        K3AppState.isServiceConnected = false
+        return super.onUnbind(intent)
+    }
 }

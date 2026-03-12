@@ -1,7 +1,10 @@
 package com.k3mobile.testk3.ui
 
 import android.app.Application
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,15 +13,17 @@ import com.k3mobile.testk3.data.SessionWithTitle
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.data.SessionEntity
 import com.k3mobile.testk3.main.K3AppState
+import com.k3mobile.testk3.main.K3KeyInput
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
-    private val dao = AppDatabase.getDatabase(application, viewModelScope).typingDao()
-    private var tts: TextToSpeech? = null
+    private val dao        = AppDatabase.getDatabase(application, viewModelScope).typingDao()
+    private var tts        : TextToSpeech? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // -------------------------------------------------------------------------
     // État TTS
@@ -28,29 +33,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val isTtsReady = _isTtsReady.asStateFlow()
 
     // -------------------------------------------------------------------------
-    // Luminosité écran
-    // -------------------------------------------------------------------------
-
-    private val _screenBrightness = MutableStateFlow(-1f)
-    val screenBrightness = _screenBrightness.asStateFlow()
-
-    fun setScreenBrightness(brightness: Float) { _screenBrightness.value = brightness.coerceIn(-1f, 1f) }
-    fun dimScreen()    = setScreenBrightness(0f)
-    fun normalScreen() = setScreenBrightness(-1f)
-    fun brightScreen() = setScreenBrightness(1f)
-
-    // -------------------------------------------------------------------------
     // Navigation clavier — délégué à K3AppState
     // -------------------------------------------------------------------------
 
-    val keyEvent = K3AppState.keyEvent
+    // Propriété calculée : retourne toujours le channel courant de K3AppState.
+    // Important : ne pas stocker la référence dans un val, car resetKeyChannel()
+    // crée un nouveau channel — il faut toujours lire K3AppState.keyChannel.
+    val keyChannel get() = K3AppState.keyChannel
 
     var isInTypingMode: Boolean
         get()      = K3AppState.isInTypingMode
         set(value) { K3AppState.isInTypingMode = value }
 
-    // Fallback si le service d'accessibilité n'est pas actif
-    fun emitKeyEvent(keyCode: Int) = K3AppState.emitKey(keyCode)
+    var pendingTextId: Long? = null
+
+    fun emitKeyEvent(keyCode: Int, unicodeChar: Int = 0) = K3AppState.emitKey(keyCode, unicodeChar)
+
+    /**
+     * Réinitialise le channel clavier. À appeler depuis MainActivity juste
+     * avant chaque navigation déclenchée par une touche, pour s'assurer que
+     * l'ancien écran (dont le LaunchedEffect tourne encore pendant la transition)
+     * ne reçoit plus aucune touche destinée au nouvel écran.
+     */
+    fun resetKeyChannel() = K3AppState.resetKeyChannel()
 
     // -------------------------------------------------------------------------
     // Voix
@@ -70,7 +75,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         if (status == TextToSpeech.SUCCESS) {
             val result = tts?.setLanguage(java.util.Locale.FRENCH)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts?.setSpeechRate(0.65f)
+                tts?.setSpeechRate(0.9f)
                 loadAvailableVoices()
                 _isTtsReady.value = true
             }
@@ -107,14 +112,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun speak(text: String) {
         if (!_isTtsReady.value) return
-        val cleaned = text
-            .replace(".", " point ")
-            .replace(",", " virgule ")
-            .replace("!", " point d'exclamation ")
-            .replace("?", " point d'interrogation ")
-            .replace(";", " point virgule ")
-            .replace(":", " deux points ")
-        tts?.speak(cleaned, TextToSpeech.QUEUE_FLUSH, null, "speak_${System.currentTimeMillis()}")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "speak_${System.currentTimeMillis()}")
     }
 
     fun speakQueued(text: String) {
@@ -122,12 +120,58 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "queued_${System.currentTimeMillis()}")
     }
 
+    /**
+     * Parle toutes les [phrases] en séquence, puis appelle [onDone] sur le
+     * MAIN THREAD quand la dernière est terminée.
+     *
+     * UtteranceProgressListener.onDone() est déclenché sur un thread background
+     * par le moteur TTS — sans mainHandler.post(), la navigation Compose plante
+     * silencieusement sur écran verrouillé.
+     */
+    fun speakThenDo(phrases: List<String>, onDone: () -> Unit) {
+        if (!_isTtsReady.value) { mainHandler.post(onDone); return }
+        if (phrases.isEmpty())  { mainHandler.post(onDone); return }
+
+        val lastId = "final_${System.currentTimeMillis()}"
+
+        tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+
+            override fun onDone(utteranceId: String?) {
+                if (utteranceId == lastId) {
+                    tts?.setOnUtteranceProgressListener(null)
+                    mainHandler.post(onDone)   // ← main thread obligatoire
+                }
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                tts?.setOnUtteranceProgressListener(null)
+                mainHandler.post(onDone)
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                tts?.setOnUtteranceProgressListener(null)
+                mainHandler.post(onDone)
+            }
+        })
+
+        phrases.forEachIndexed { index, phrase ->
+            val id        = if (index == phrases.lastIndex) lastId else "q_${System.currentTimeMillis()}_$index"
+            val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+            tts?.speak(phrase, queueMode, null, id)
+        }
+    }
+
     fun stopSpeaking() {
-        if (_isTtsReady.value) tts?.stop()
+        if (_isTtsReady.value) {
+            tts?.setOnUtteranceProgressListener(null)
+            tts?.stop()
+        }
     }
 
     fun setSpeechRate(rate: Float) {
-        val ttsRate = 0.4f + ((rate - 1f) / 2f) * 0.8f
+        val ttsRate = 0.7f + ((rate - 1f) / 2f) * 0.8f
         tts?.setSpeechRate(ttsRate)
     }
 
