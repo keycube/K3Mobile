@@ -1,6 +1,8 @@
 package com.k3mobile.testk3.ui
 
 import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -24,6 +26,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val dao        = AppDatabase.getDatabase(application, viewModelScope).typingDao()
     private var tts        : TextToSpeech? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // -------------------------------------------------------------------------
+    // Persistance des préférences
+    // -------------------------------------------------------------------------
+    private val prefs: SharedPreferences =
+        application.getSharedPreferences("K3_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_VOICE_NAME = "selected_voice_name"
+        private const val KEY_SPEECH_RATE = "speech_rate"
+        private const val KEY_CATEGORY_INDEX = "category_index"
+        private const val KEY_SPEED_INDEX = "speed_index"
+    }
+
+    var savedCategoryIndex: Int
+        get() = prefs.getInt(KEY_CATEGORY_INDEX, 0)
+        set(value) = prefs.edit().putInt(KEY_CATEGORY_INDEX, value).apply()
+
+    var savedSpeedIndex: Int
+        get() = prefs.getInt(KEY_SPEED_INDEX, 1)
+        set(value) = prefs.edit().putInt(KEY_SPEED_INDEX, value).apply()
 
     // -------------------------------------------------------------------------
     // État TTS
@@ -77,6 +100,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 tts?.setSpeechRate(0.9f)
                 loadAvailableVoices()
+
+                val savedVoiceName = prefs.getString(KEY_VOICE_NAME, null)
+                if (savedVoiceName != null){
+                    val savedVoice = _availableVoices.value.find { it.name == savedVoiceName }
+                    if (savedVoice != null){
+                        tts?.voice = savedVoice
+                        _selectedVoice.value = savedVoice
+                    }
+                }
                 _isTtsReady.value = true
             }
         }
@@ -94,6 +126,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     fun selectVoice(voice: Voice) {
         tts?.voice = voice
         _selectedVoice.value = voice
+        prefs.edit().putString(KEY_VOICE_NAME, voice.name).apply()
     }
 
     fun previewVoice(voice: Voice) {
@@ -173,6 +206,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     fun setSpeechRate(rate: Float) {
         val ttsRate = 0.7f + ((rate - 1f) / 2f) * 0.8f
         tts?.setSpeechRate(ttsRate)
+        prefs.edit().putFloat(KEY_SPEECH_RATE, ttsRate).apply()
     }
 
     override fun onCleared() {

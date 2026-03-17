@@ -35,8 +35,8 @@ fun CustomGameScreen(
 
     LaunchedEffect(Unit) {
         model.speak(
-            "Choisissez le type de texte. " +
-                    "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+            "Choisissez le type de texte" +
+                    "1 pour Phrases 2 pour Histoires 3 pour Textes personnalisés"
         )
     }
 
@@ -55,10 +55,10 @@ fun CustomGameScreen(
                     }
                     if (idx >= 0) {
                         categoryIndex = idx
-                        model.speak("${categoryLabels[idx]} sélectionné.")
+                        model.speak("${categoryLabels[idx]} sélectionné")
                         model.speakQueued(
-                            "Choisissez la vitesse audio. " +
-                                    "1 pour lente. 2 normale. 3 rapide. 4 très rapide. 5 maximale."
+                            "Choisissez la vitesse audio" +
+                                    "1 pour lente 2 normale 3 rapide 4 très rapide 5 maximale"
                         )
                         step = AudioStep.SPEED
                     } else if (keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_BACK) {
@@ -78,19 +78,19 @@ fun CustomGameScreen(
                     }
                     if (idx >= 0) {
                         speedIndex = idx
-                        model.speak("Vitesse ${speedLabels[idx]} sélectionnée.")
+                        model.speak("Vitesse ${speedLabels[idx]} sélectionnée")
                         model.speakQueued(
-                            "Récapitulatif. " +
-                                    "Type de texte : ${categoryLabels[categoryIndex]}. " +
-                                    "Vitesse : ${speedLabels[idx]}. " +
-                                    "Appuyez sur Entrée pour confirmer, " +
-                                    "ou sur Retour arrière pour recommencer."
+                            "Récapitulatif " +
+                                    "Type de texte ${categoryLabels[categoryIndex]}" +
+                                    "Vitesse ${speedLabels[idx]}" +
+                                    "Appuyez sur Entrée pour confirmer " +
+                                    "ou sur Retour arrière pour recommencer"
                         )
                         step = AudioStep.CONFIRM
                     } else if (keyCode == KeyEvent.KEYCODE_DEL) {
                         model.speak(
-                            "Choisissez le type de texte. " +
-                                    "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+                            "Choisissez le type de texte" +
+                                    "1 pour Phrases 2 pour Histoires 3 pour Textes personnalisés"
                         )
                         step = AudioStep.CATEGORY
                     }
@@ -100,12 +100,14 @@ fun CustomGameScreen(
                     when (keyCode) {
                         KeyEvent.KEYCODE_ENTER -> {
                             model.stopSpeaking()
+                            model.savedCategoryIndex = categoryIndex
+                            model.savedSpeedIndex = speedIndex
                             onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
                         }
                         KeyEvent.KEYCODE_DEL -> {
                             model.speak(
-                                "Choisissez le type de texte. " +
-                                        "1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés."
+                                "Choisissez le type de texte " +
+                                        "1 pour Phrases 2 pour Histoires 3 pour Textes personnalisés"
                             )
                             step = AudioStep.CATEGORY
                         }
