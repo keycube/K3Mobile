@@ -167,9 +167,7 @@ private fun TypingContent(
 
             when {
                 event.keyCode == KeyEvent.KEYCODE_ENTER -> {
-                    val currentClean = userInput.normalize()
-                    val targetClean  = sentences[currentSentenceIndex].normalize()
-                    if (currentClean == targetClean) goToNextSentence()
+                    goToNextSentence()
                 }
                 event.keyCode == KeyEvent.KEYCODE_DEL -> {
                     if (userInput.isNotEmpty()) userInput = userInput.dropLast(1)
