@@ -69,8 +69,8 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         for (event in model.keyChannel) {
             when (event.keyCode) {
-                KeyEvent.KEYCODE_ENTER -> { model.stopSpeaking(); onPartiePersonnalisee() }
-                KeyEvent.KEYCODE_S     -> { model.stopSpeaking(); onSettings() }
+                KeyEvent.KEYCODE_ENTER -> { model.stopSpeaking(); model.sound.playNavigation(); onPartiePersonnalisee() }
+                KeyEvent.KEYCODE_S     -> { model.stopSpeaking(); model.sound.playNavigation(); onSettings() }
             }
         }
     }

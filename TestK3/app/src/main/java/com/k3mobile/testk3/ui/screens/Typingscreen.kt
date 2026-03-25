@@ -97,10 +97,13 @@ private fun TypingContent(
         totalEvaluatedChars += maxOf(ci.length, ct.length)
 
         if (currentSentenceIndex < sentences.lastIndex) {
+            model.sound.playValidation()
             currentSentenceIndex++
             userInput = ""
         } else {
             isFinishing = true
+            model.sound.playVictory()
+            model.sound.vibrateVictory()
 
             val duration    = System.currentTimeMillis() - startTime
             val minutes     = duration / 60_000.0
@@ -141,9 +144,10 @@ private fun TypingContent(
         )
         model.speak("Préparez-vous à écrire")
         delay(1_800)
-        model.speakQueued("3"); delay(900)
-        model.speakQueued("2"); delay(900)
-        model.speakQueued("1"); delay(900)
+        model.sound.playCountdownTick(); model.speakQueued("3"); delay(900)
+        model.sound.playCountdownTick(); model.speakQueued("2"); delay(900)
+        model.sound.playCountdownTick(); model.speakQueued("1"); delay(900)
+        model.sound.playCountdownGo()
 
         context.startService(
             Intent(context, TypingForegroundService::class.java).apply {
@@ -170,7 +174,10 @@ private fun TypingContent(
                     goToNextSentence()
                 }
                 event.keyCode == KeyEvent.KEYCODE_DEL -> {
-                    if (userInput.isNotEmpty()) userInput = userInput.dropLast(1)
+                    if (userInput.isNotEmpty()) {
+                        model.sound.playDelete()
+                        userInput = userInput.dropLast(1)
+                    }
                 }
                 event.unicodeChar > 0 && !Character.isISOControl(event.unicodeChar.toChar()) -> {
                     userInput += event.unicodeChar.toChar()

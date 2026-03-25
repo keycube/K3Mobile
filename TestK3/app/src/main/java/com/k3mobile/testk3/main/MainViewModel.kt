@@ -16,6 +16,7 @@ import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.data.SessionEntity
 import com.k3mobile.testk3.main.K3AppState
 import com.k3mobile.testk3.main.K3KeyInput
+import com.k3mobile.testk3.main.K3SoundManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val dao        = AppDatabase.getDatabase(application, viewModelScope).typingDao()
     private var tts        : TextToSpeech? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // -------------------------------------------------------------------------
+    // Sons et haptique
+    // -------------------------------------------------------------------------
+
+    val sound = K3SoundManager(application)
 
     // -------------------------------------------------------------------------
     // Persistance des préférences
@@ -212,6 +219,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     override fun onCleared() {
         tts?.stop()
         tts?.shutdown()
+        sound.release()
         super.onCleared()
     }
 

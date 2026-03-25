@@ -74,6 +74,7 @@ fun TextListScreen(
                             hasNavigated = true
                             model.pendingTextId = null
                             model.stopSpeaking()
+                            model.sound.playNavigation()
                             onTextSelected(textId)
                         } else if (textId == null) {
                             model.speak("Veuillez d'abord sélectionner un texte avec son numéro")
@@ -86,6 +87,7 @@ fun TextListScreen(
                     keyCode == KeyEvent.KEYCODE_DEL -> {
                         model.pendingTextId = null
                         model.stopSpeaking()
+                        model.sound.playNavigation()
                         onBack()
                     }
                 }

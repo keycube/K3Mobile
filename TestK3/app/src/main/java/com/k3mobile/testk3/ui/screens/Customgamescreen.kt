@@ -83,7 +83,7 @@ fun CustomGameScreen(
                             "Récapitulatif " +
                                     "Type de texte ${categoryLabels[categoryIndex]}" +
                                     "Vitesse ${speedLabels[idx]}" +
-                                    "Appuyez sur Entrée pour confirmer " +
+                                    "Appuyez sur Entrée pour confirmer" +
                                     "ou sur Retour arrière pour recommencer"
                         )
                         step = AudioStep.CONFIRM
@@ -100,6 +100,7 @@ fun CustomGameScreen(
                     when (keyCode) {
                         KeyEvent.KEYCODE_ENTER -> {
                             model.stopSpeaking()
+                            model.sound.playNavigation()
                             model.savedCategoryIndex = categoryIndex
                             model.savedSpeedIndex = speedIndex
                             onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
