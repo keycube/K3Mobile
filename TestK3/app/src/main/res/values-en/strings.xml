@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">K3AudioType</string>
+    <string name="accessibility_service_description">Allows K3AudioType to receive keyboard input even when the screen is locked.</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="accept">Accept</string>
+    <string name="quit">Quit</string>
+    <string name="settings">Settings</string>
+
+    <!-- HomeScreen -->
+    <string name="welcome_tts">Welcome to K3 Audio Type. Press Enter to start a game. or press S to access settings.</string>
+    <string name="start_game">Start a game</string>
+    <string name="permission_required">Permission required</string>
+    <string name="permission_description">K3AudioType needs to be enabled as an accessibility service to receive keyboard input even when the screen is locked.</string>
+    <string name="permission_steps">In the screen that will open:\n1. Find \"K3AudioType\" in the list\n2. Enable it\n3. Confirm the permission</string>
+    <string name="open_settings">Open settings</string>
+
+    <!-- CustomGameScreen -->
+    <string name="setup_game">Set up a game!</string>
+    <string name="text_type">Text type:</string>
+    <string name="audio_speed">Audio speed:</string>
+    <string name="words_per_sec">words/sec</string>
+    <string name="cat_phrases">Phrases</string>
+    <string name="cat_stories">Stories</string>
+    <string name="cat_custom">Custom texts</string>
+    <string name="speed_slow">slow</string>
+    <string name="speed_normal">normal</string>
+    <string name="speed_fast">fast</string>
+    <string name="speed_very_fast">very fast</string>
+    <string name="speed_max">maximum</string>
+    <string name="step_text_type">Text type</string>
+    <string name="step_speed">Speed</string>
+    <string name="step_confirm">Confirmation</string>
+    <string name="tts_choose_text_type">Choose the text type. 1 for Phrases. 2 for Stories. 3 for Custom texts.</string>
+    <string name="tts_selected">%s selected.</string>
+    <string name="tts_choose_speed">Choose the audio speed. 1 for slow. 2 normal. 3 fast. 4 very fast. 5 maximum.</string>
+    <string name="tts_speed_selected">Speed %s selected.</string>
+    <string name="tts_recap">Summary. Text type: %1$s. Speed: %2$s. Press Enter to confirm, or Backspace to start over.</string>
+
+    <!-- TextListScreen -->
+    <string name="texts_count">%1$d text%2$s available</string>
+    <string name="no_text_available">No text available</string>
+    <string name="press_plus_to_add">Press + to add one</string>
+    <string name="add_text">Add a text</string>
+    <string name="new_text">New text</string>
+    <string name="edit_text">Edit text</string>
+    <string name="add">Add</string>
+    <string name="save">Save</string>
+    <string name="title_label">Title</string>
+    <string name="content_label">Content</string>
+    <string name="tts_no_text">No text available in this category.</string>
+    <string name="tts_text_selected">Text selected %s. Press Enter to start or another number to change.</string>
+    <string name="tts_select_first">Please select a text first using its number.</string>
+    <string name="tts_text_list">You have %1$d text%2$s available. %4$s. Press the number of the desired text or Star to repeat the list.</string>
+    <string name="tts_number">Number %1$d %2$s</string>
+
+    <!-- TypingScreen -->
+    <string name="get_ready">Get ready…</string>
+    <string name="type_here">Type the text…</string>
+    <string name="waiting">Waiting…</string>
+    <string name="quit_button">⬅ Quit</string>
+    <string name="sentence_progress">Sentence %1$d / %2$d</string>
+    <string name="session_end">✅ Session ended…</string>
+    <string name="correction_needed">❌ Correction needed</string>
+    <string name="press_enter">✅ Press Enter</string>
+    <string name="tts_get_ready">Get ready to type</string>
+    <string name="tts_bravo">Well done, exercise completed.</string>
+    <string name="tts_duration">Duration: %s.</string>
+    <string name="tts_speed_result">Speed: %d words per minute.</string>
+    <string name="tts_accuracy_result">Accuracy: %d percent.</string>
+    <string name="tts_back_to_menu">Back to main menu.</string>
+    <string name="duration_min_sec">%1$d minute%2$s and %3$d seconds</string>
+    <string name="duration_sec">%d seconds</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Settings:</string>
+    <string name="menu_language">Language</string>
+    <string name="menu_sound">Sound</string>
+    <string name="menu_voice">Voice</string>
+    <string name="menu_custom_texts">Custom texts</string>
+    <string name="menu_stats">Statistics</string>
+
+    <!-- VoiceScreen -->
+    <string name="voices_title">Voices</string>
+    <string name="voices_count">%1$d voice%2$s available</string>
+    <string name="no_voice_found">No voice found.</string>
+    <string name="no_voice_hint">Check that voices are installed in your device\'s TTS settings.</string>
+    <string name="active_voice">Active voice</string>
+    <string name="change_voice">Change voice</string>
+    <string name="listen">▶ Listen</string>
+    <string name="choose">Choose</string>
+    <string name="voice_preview_text">Hello, here is a preview of my voice.</string>
+    <string name="quality_very_high">Very high quality</string>
+    <string name="quality_high">High quality</string>
+    <string name="quality_normal">Normal quality</string>
+    <string name="quality_low">Low quality</string>
+    <string name="quality_unknown">Unknown quality</string>
+    <string name="voice_local">(local)</string>
+    <string name="voice_network">(network)</string>
+
+    <!-- SoundScreen -->
+    <string name="sound_title">Sound:</string>
+    <string name="audio_volume">Audio volume:</string>
+    <string name="effects_volume">Effects volume:</string>
+
+    <!-- LanguageScreen -->
+    <string name="language_title">Languages:</string>
+    <string name="language_label">Language</string>
+    <string name="lang_french">French</string>
+    <string name="lang_english">English</string>
+    <string name="lang_spanish">Spanish</string>
+
+    <!-- StatsScreen -->
+    <string name="stats_title">Statistics</string>
+    <string name="sessions_count">%1$d session%2$s recorded</string>
+    <string name="no_session">No session recorded.</string>
+    <string name="no_session_hint">Start a game to see your stats!</string>
+    <string name="best_speed">Best\nspeed</string>
+    <string name="avg_accuracy">Average\naccuracy</string>
+    <string name="total_sessions">Total\nsessions</string>
+    <string name="progression">Progress</string>
+    <string name="last_sessions">Last %d sessions</string>
+    <string name="chart_legend">Sessions (oldest to newest)</string>
+    <string name="history">History</string>
+    <string name="metric_speed">Speed</string>
+    <string name="metric_accuracy">Accuracy</string>
+    <string name="metric_duration">Duration</string>
+
+    <!-- WelcomeScreen -->
+    <string name="welcome_title">Welcome to</string>
+    <string name="start">Start</string>
+</resources>

@@ -1,5 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TestK3</string>
-    <string name="accessibility_service_description">K3AudioType utilise ce service pour recevoir les touches clavier même lorsque l\'écran est verrouillé.</string>
+    <string name="app_name">K3AudioType</string>
+    <string name="accessibility_service_description">Permet à K3AudioType de recevoir les touches clavier même lorsque l\'écran est verrouillé.</string>
+
+    <!-- Commun -->
+    <string name="back">Retour</string>
+    <string name="cancel">Annuler</string>
+    <string name="confirm">Confirmer</string>
+    <string name="accept">Accepter</string>
+    <string name="quit">Quitter</string>
+    <string name="settings">Paramètres</string>
+
+    <!-- HomeScreen -->
+    <string name="welcome_tts">Bienvenue sur K3 Audio Type. Appuyez sur Entrée pour lancer une partie. ou sur la touche S pour accéder aux paramètres.</string>
+    <string name="start_game">Lancer une partie</string>
+    <string name="permission_required">Autorisation requise</string>
+    <string name="permission_description">K3AudioType a besoin d\'être activé en tant que service d\'accessibilité pour recevoir les touches clavier même lorsque l\'écran est verrouillé.</string>
+    <string name="permission_steps">Dans l\'écran qui va s\'ouvrir :\n1. Trouvez « K3AudioType » dans la liste\n2. Activez-le\n3. Confirmez la permission</string>
+    <string name="open_settings">Ouvrir les paramètres</string>
+
+    <!-- CustomGameScreen -->
+    <string name="setup_game">Paramétrer une partie !</string>
+    <string name="text_type">Type de texte :</string>
+    <string name="audio_speed">Vitesse de l\'audio :</string>
+    <string name="words_per_sec">mots/sec</string>
+    <string name="cat_phrases">Phrases</string>
+    <string name="cat_stories">Histoires</string>
+    <string name="cat_custom">Textes personnalisés</string>
+    <string name="speed_slow">lente</string>
+    <string name="speed_normal">normale</string>
+    <string name="speed_fast">rapide</string>
+    <string name="speed_very_fast">très rapide</string>
+    <string name="speed_max">maximale</string>
+    <string name="step_text_type">Type de texte</string>
+    <string name="step_speed">Vitesse</string>
+    <string name="step_confirm">Confirmation</string>
+    <string name="tts_choose_text_type">Choisissez le type de texte. 1 pour Phrases. 2 pour Histoires. 3 pour Textes personnalisés.</string>
+    <string name="tts_selected">%s sélectionné.</string>
+    <string name="tts_choose_speed">Choisissez la vitesse audio. 1 pour lente. 2 normale. 3 rapide. 4 très rapide. 5 maximale.</string>
+    <string name="tts_speed_selected">Vitesse %s sélectionnée.</string>
+    <string name="tts_recap">Récapitulatif. Type de texte : %1$s. Vitesse : %2$s. Appuyez sur Entrée pour confirmer, ou sur Retour arrière pour recommencer.</string>
+
+    <!-- TextListScreen -->
+    <string name="texts_count">%1$d texte%2$s disponible%3$s</string>
+    <string name="no_text_available">Aucun texte disponible</string>
+    <string name="press_plus_to_add">Appuyez sur + pour en ajouter un</string>
+    <string name="add_text">Ajouter un texte</string>
+    <string name="new_text">Nouveau texte</string>
+    <string name="edit_text">Modifier le texte</string>
+    <string name="add">Ajouter</string>
+    <string name="save">Enregistrer</string>
+    <string name="title_label">Titre</string>
+    <string name="content_label">Contenu</string>
+    <string name="tts_no_text">Aucun texte disponible dans cette catégorie.</string>
+    <string name="tts_text_selected">Texte sélectionné %s. Appuyez sur Entrée pour démarrer ou sur un autre numéro pour changer.</string>
+    <string name="tts_select_first">Veuillez d\'abord sélectionner un texte avec son numéro.</string>
+    <string name="tts_text_list">Vous avez %1$d texte%2$s disponible%3$s. %4$s. Appuyez sur le numéro du texte souhaité ou sur Étoile pour répéter la liste.</string>
+    <string name="tts_number">Numéro %1$d %2$s</string>
+
+    <!-- TypingScreen -->
+    <string name="get_ready">Préparez-vous…</string>
+    <string name="type_here">Tapez le texte…</string>
+    <string name="waiting">En attente…</string>
+    <string name="quit_button">⬅ Quitter</string>
+    <string name="sentence_progress">Phrase %1$d / %2$d</string>
+    <string name="session_end">✅ Fin de session…</string>
+    <string name="correction_needed">❌ Correction nécessaire</string>
+    <string name="press_enter">✅ Appuyez sur Entrée</string>
+    <string name="tts_get_ready">Préparez-vous à écrire</string>
+    <string name="tts_bravo">Bravo, exercice terminé.</string>
+    <string name="tts_duration">Durée : %s.</string>
+    <string name="tts_speed_result">Vitesse : %d mots par minute.</string>
+    <string name="tts_accuracy_result">Précision : %d pourcent.</string>
+    <string name="tts_back_to_menu">Retour au menu principal.</string>
+    <string name="duration_min_sec">%1$d minute%2$s et %3$d secondes</string>
+    <string name="duration_sec">%d secondes</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Paramètres :</string>
+    <string name="menu_language">Langue</string>
+    <string name="menu_sound">Son</string>
+    <string name="menu_voice">Voix</string>
+    <string name="menu_custom_texts">Textes personnalisés</string>
+    <string name="menu_stats">Statistiques</string>
+
+    <!-- VoiceScreen -->
+    <string name="voices_title">Voix</string>
+    <string name="voices_count">%1$d voix disponible%2$s</string>
+    <string name="no_voice_found">Aucune voix trouvée.</string>
+    <string name="no_voice_hint">Vérifiez que des voix sont installées dans les paramètres TTS de votre appareil.</string>
+    <string name="active_voice">Voix active</string>
+    <string name="change_voice">Changer de voix</string>
+    <string name="listen">▶ Écouter</string>
+    <string name="choose">Choisir</string>
+    <string name="voice_preview_text">Bonjour, voici un aperçu de ma voix.</string>
+    <string name="quality_very_high">Très haute qualité</string>
+    <string name="quality_high">Haute qualité</string>
+    <string name="quality_normal">Qualité normale</string>
+    <string name="quality_low">Qualité basse</string>
+    <string name="quality_unknown">Qualité inconnue</string>
+    <string name="voice_local">(locale)</string>
+    <string name="voice_network">(réseau)</string>
+
+    <!-- SoundScreen -->
+    <string name="sound_title">Son :</string>
+    <string name="audio_volume">Volume de l\'audio :</string>
+    <string name="effects_volume">Volume des effets :</string>
+
+    <!-- LanguageScreen -->
+    <string name="language_title">Langues :</string>
+    <string name="language_label">Langue</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_english">Anglais</string>
+    <string name="lang_spanish">Espagnol</string>
+
+    <!-- StatsScreen -->
+    <string name="stats_title">Statistiques</string>
+    <string name="sessions_count">%1$d session%2$s enregistrée%3$s</string>
+    <string name="no_session">Aucune session enregistrée.</string>
+    <string name="no_session_hint">Lancez une partie pour voir vos stats !</string>
+    <string name="best_speed">Meilleure\nvitesse</string>
+    <string name="avg_accuracy">Précision\nmoyenne</string>
+    <string name="total_sessions">Sessions\ntotales</string>
+    <string name="progression">Progression</string>
+    <string name="last_sessions">%d dernières sessions</string>
+    <string name="chart_legend">Sessions (de la plus ancienne à la plus récente)</string>
+    <string name="history">Historique</string>
+    <string name="metric_speed">Vitesse</string>
+    <string name="metric_accuracy">Précision</string>
+    <string name="metric_duration">Durée</string>
+
+    <!-- WelcomeScreen -->
+    <string name="welcome_title">Bienvenue sur</string>
+    <string name="start">Commencer</string>
 </resources>

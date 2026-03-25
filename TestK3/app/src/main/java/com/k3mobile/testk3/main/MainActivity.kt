@@ -1,6 +1,8 @@
 package com.k3mobile.testk3.main
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
@@ -20,10 +22,26 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.k3mobile.testk3.ui.MainViewModel
 import com.k3mobile.testk3.ui.screens.*
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
     private val sharedViewModel: MainViewModel by viewModels()
+
+    /**
+     * Applique la langue sauvegardée AVANT que l'Activity ne soit créée.
+     * Cela garantit que stringResource() et context.getString() retournent
+     * les traductions dans la bonne langue dès le premier affichage.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("K3_prefs", Context.MODE_PRIVATE)
+        val langCode = prefs.getString("language_code", "fr") ?: "fr"
+        val locale = Locale(langCode)
+        Locale.setDefault(locale)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
