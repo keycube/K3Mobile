@@ -3,6 +3,7 @@ package com.k3mobile.testk3.ui
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -28,7 +29,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private var tts        : TextToSpeech? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-
     // -------------------------------------------------------------------------
     // Sons et haptique
     // -------------------------------------------------------------------------
@@ -46,6 +46,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         private const val KEY_SPEECH_RATE = "speech_rate"
         private const val KEY_CATEGORY_INDEX = "category_index"
         private const val KEY_SPEED_INDEX = "speed_index"
+        private const val KEY_TTS_VOLUME = "tts_volume"
+        private const val KEY_EFFECTS_VOLUME = "effects_volume"
+        private const val KEY_LANGUAGE = "language_code"
     }
 
     var savedCategoryIndex: Int
@@ -55,6 +58,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     var savedSpeedIndex: Int
         get() = prefs.getInt(KEY_SPEED_INDEX, 1)
         set(value) = prefs.edit().putInt(KEY_SPEED_INDEX, value).apply()
+
+    /** Volume TTS 0–100, par défaut 50. */
+    var savedTtsVolume: Int
+        get() = prefs.getInt(KEY_TTS_VOLUME, 50)
+        set(value) {
+            prefs.edit().putInt(KEY_TTS_VOLUME, value).apply()
+            _ttsVolume = value / 100f
+        }
+
+    /** Volume effets sonores 0–100, par défaut 50. */
+    var savedEffectsVolume: Int
+        get() = prefs.getInt(KEY_EFFECTS_VOLUME, 50)
+        set(value) {
+            prefs.edit().putInt(KEY_EFFECTS_VOLUME, value).apply()
+            sound.setVolume(value)
+        }
+
+    /** Code langue sauvegardé : "fr", "en", "es". */
+    var savedLanguage: String
+        get() = prefs.getString(KEY_LANGUAGE, "fr") ?: "fr"
+        set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
+
+    /** Volume TTS courant en float 0.0–1.0 pour le Bundle speak(). */
+    private var _ttsVolume: Float = prefs.getInt(KEY_TTS_VOLUME, 50) / 100f
 
     // -------------------------------------------------------------------------
     // État TTS
@@ -104,31 +131,64 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(java.util.Locale.FRENCH)
+            // Restaurer la langue sauvegardée
+            val locale = localeForCode(savedLanguage)
+            val result = tts?.setLanguage(locale)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 tts?.setSpeechRate(0.9f)
                 loadAvailableVoices()
 
+                // Restaurer la voix sauvegardée
                 val savedVoiceName = prefs.getString(KEY_VOICE_NAME, null)
-                if (savedVoiceName != null){
+                if (savedVoiceName != null) {
                     val savedVoice = _availableVoices.value.find { it.name == savedVoiceName }
-                    if (savedVoice != null){
+                    if (savedVoice != null) {
                         tts?.voice = savedVoice
                         _selectedVoice.value = savedVoice
                     }
                 }
+
+                // Restaurer le volume des effets
+                sound.setVolume(savedEffectsVolume)
+
                 _isTtsReady.value = true
             }
         }
     }
 
+    /** Convertit un code langue en Locale. */
+    private fun localeForCode(code: String): java.util.Locale = when (code) {
+        "en" -> java.util.Locale.ENGLISH
+        "es" -> java.util.Locale("es")
+        else -> java.util.Locale.FRENCH
+    }
+
     private fun loadAvailableVoices() {
+        val langCode = savedLanguage
         val voices = tts?.voices
-            ?.filter { it.locale.language == "fr" && !it.isNetworkConnectionRequired }
+            ?.filter { it.locale.language == langCode && !it.isNetworkConnectionRequired }
             ?.sortedBy { it.name }
             ?: emptyList()
         _availableVoices.value = voices
         _selectedVoice.value = tts?.voice
+    }
+
+    /**
+     * Change la langue du TTS et recharge les voix disponibles.
+     * Réinitialise la voix sélectionnée vers la voix par défaut de la nouvelle langue.
+     */
+    fun setLanguage(code: String) {
+        savedLanguage = code
+        val locale = localeForCode(code)
+        tts?.setLanguage(locale)
+        loadAvailableVoices()
+        // Sélectionner la première voix disponible dans la nouvelle langue
+        val firstVoice = _availableVoices.value.firstOrNull()
+        if (firstVoice != null) {
+            tts?.voice = firstVoice
+            _selectedVoice.value = firstVoice
+            prefs.edit().putString(KEY_VOICE_NAME, firstVoice.name).apply()
+        }
     }
 
     fun selectVoice(voice: Voice) {
@@ -141,7 +201,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         if (!_isTtsReady.value) return
         val prev = tts?.voice
         tts?.voice = voice
-        tts?.speak("Bonjour, voici un aperçu de ma voix.", TextToSpeech.QUEUE_FLUSH, null, "VoicePreview")
+        tts?.speak("Bonjour, voici un aperçu de ma voix.", TextToSpeech.QUEUE_FLUSH, volumeBundle(), "VoicePreview")
         if (prev != null && prev.name != voice.name && _selectedVoice.value?.name != voice.name) {
             tts?.voice = _selectedVoice.value ?: prev
         }
@@ -151,14 +211,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     // TTS — lecture
     // -------------------------------------------------------------------------
 
+    /** Crée un Bundle avec le volume TTS courant. */
+    private fun volumeBundle(): Bundle = Bundle().apply {
+        putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, _ttsVolume)
+    }
+
     fun speak(text: String) {
         if (!_isTtsReady.value) return
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "speak_${System.currentTimeMillis()}")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, volumeBundle(), "speak_${System.currentTimeMillis()}")
     }
 
     fun speakQueued(text: String) {
         if (!_isTtsReady.value) return
-        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "queued_${System.currentTimeMillis()}")
+        tts?.speak(text, TextToSpeech.QUEUE_ADD, volumeBundle(), "queued_${System.currentTimeMillis()}")
     }
 
     /**
@@ -200,7 +265,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         phrases.forEachIndexed { index, phrase ->
             val id        = if (index == phrases.lastIndex) lastId else "q_${System.currentTimeMillis()}_$index"
             val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
-            tts?.speak(phrase, queueMode, null, id)
+            tts?.speak(phrase, queueMode, volumeBundle(), id)
         }
     }
 

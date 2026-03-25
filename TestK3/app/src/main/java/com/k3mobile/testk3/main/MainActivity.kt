@@ -57,6 +57,8 @@ class MainActivity : ComponentActivity() {
 
                         composable("settings") {
                             SettingsScreen(
+                                onLangue = { navController.navigate("language") },
+                                onSon = { navController.navigate("sound") },
                                 onVoix = { navController.navigate("voices") },
                                 onTextesPersonnalises = { navController.navigate("text_list_readonly/textes personnalisées") },
                                 onStatistiques = { navController.navigate("stats") },
@@ -66,6 +68,14 @@ class MainActivity : ComponentActivity() {
 
                         composable("voices") {
                             VoiceScreen(model = viewModel, onBack = { navController.popBackStack() })
+                        }
+
+                        composable("sound") {
+                            SoundScreen(model = viewModel, onBack = { navController.popBackStack() })
+                        }
+
+                        composable("language") {
+                            LanguageScreen(model = viewModel, onBack = { navController.popBackStack() })
                         }
 
                         composable("custom_game") {
