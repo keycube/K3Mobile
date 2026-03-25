@@ -1,15 +1,12 @@
 package com.k3mobile.testk3.main
 
-import android.Manifest
 import android.content.Context
-import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.*
 
 /**
@@ -107,20 +104,25 @@ class K3SoundManager(context: Context) {
     /**
      * Vibration longue — fin d'exercice.
      * Utile si le son est coupé ou si le téléphone est posé sur la table.
+     *
+     * Nécessite android.permission.VIBRATE dans le Manifest.
+     * En cas d'absence de permission, la vibration est ignorée silencieusement.
      */
-    @RequiresPermission(Manifest.permission.VIBRATE)
     fun vibrateVictory() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Pattern : 0ms d'attente, 200ms vibration, 150ms pause, 400ms vibration
-            vibrator.vibrate(
-                VibrationEffect.createWaveform(
-                    longArrayOf(0, 200, 150, 400),
-                    -1  // -1 = pas de répétition
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(
+                    VibrationEffect.createWaveform(
+                        longArrayOf(0, 200, 150, 400),
+                        -1
+                    )
                 )
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(longArrayOf(0, 200, 150, 400), -1)
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 200, 150, 400), -1)
+            }
+        } catch (_: SecurityException) {
+            // Permission VIBRATE manquante — on ignore silencieusement
         }
     }
 

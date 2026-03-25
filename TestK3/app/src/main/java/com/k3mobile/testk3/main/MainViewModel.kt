@@ -28,6 +28,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private var tts        : TextToSpeech? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+
     // -------------------------------------------------------------------------
     // Sons et haptique
     // -------------------------------------------------------------------------
