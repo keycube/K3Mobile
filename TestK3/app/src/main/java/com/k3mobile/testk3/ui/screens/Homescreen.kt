@@ -22,16 +22,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.main.K3AccessibilityService
+import com.k3mobile.testk3.main.K3AppState
 import com.k3mobile.testk3.ui.MainViewModel
 
 private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
-    val am = context.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
-    return am.getEnabledAccessibilityServiceList(
-        android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK
-    ).any { info ->
-        info.resolveInfo.serviceInfo.packageName == context.packageName &&
-                info.resolveInfo.serviceInfo.name == K3AccessibilityService::class.java.name
-    }
+    val expectedComponent = android.content.ComponentName(
+        context, K3AccessibilityService::class.java
+    ).flattenToString()
+
+    val enabledServices = android.provider.Settings.Secure.getString(
+        context.contentResolver,
+        android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    ) ?: return false
+
+    return enabledServices.split(':').any { it.equals(expectedComponent, ignoreCase = true) }
 }
 
 @Composable
@@ -43,13 +47,14 @@ fun HomeScreen(
     val context        = LocalContext.current
     val isTtsReady     by model.isTtsReady.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var serviceEnabled   by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
+    var serviceEnabled   by remember { mutableStateOf(isAccessibilityServiceEnabled(context) || K3AppState.isServiceConnected) }
     var hasSpokenWelcome by remember { mutableStateOf(false) }
     val welcomeTts = stringResource(R.string.welcome_tts)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) { serviceEnabled = isAccessibilityServiceEnabled(context) }
+            if (event == Lifecycle.Event.ON_RESUME) { serviceEnabled = isAccessibilityServiceEnabled(context) || K3AppState.isServiceConnected
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
