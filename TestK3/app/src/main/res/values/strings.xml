@@ -21,8 +21,8 @@
 
     <!-- CustomGameScreen -->
     <string name="setup_game">Paramétrer une partie !</string>
-    <string name="text_type">Type de texte :</string>
-    <string name="audio_speed">Vitesse de l\'audio :</string>
+    <string name="text_type">Type de texte</string>
+    <string name="audio_speed">Vitesse de l\'audio</string>
     <string name="words_per_sec">mots/sec</string>
     <string name="cat_phrases">Phrases</string>
     <string name="cat_stories">Histoires</string>
@@ -77,7 +77,7 @@
     <string name="duration_sec">%d secondes</string>
 
     <!-- SettingsScreen -->
-    <string name="settings_title">Paramètres :</string>
+    <string name="settings_title">Paramètres</string>
     <string name="menu_language">Langue</string>
     <string name="menu_sound">Son</string>
     <string name="menu_voice">Voix</string>
@@ -103,12 +103,12 @@
     <string name="voice_network">(réseau)</string>
 
     <!-- SoundScreen -->
-    <string name="sound_title">Son :</string>
-    <string name="audio_volume">Volume de l\'audio :</string>
-    <string name="effects_volume">Volume des effets :</string>
+    <string name="sound_title">Son</string>
+    <string name="audio_volume">Volume de l\'audio</string>
+    <string name="effects_volume">Volume des effets</string>
 
     <!-- LanguageScreen -->
-    <string name="language_title">Langues :</string>
+    <string name="language_title">Langues</string>
     <string name="language_label">Langue</string>
     <string name="lang_french">Français</string>
     <string name="lang_english">Anglais</string>

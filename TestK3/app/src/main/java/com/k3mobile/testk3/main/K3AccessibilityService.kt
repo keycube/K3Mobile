@@ -23,6 +23,8 @@ class K3AccessibilityService : AccessibilityService() {
         if (event.action != KeyEvent.ACTION_DOWN) return false
         if (event.repeatCount > 0) return false
 
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) return false
+
         var unicode = event.getUnicodeChar(event.metaState)
 
         if ((unicode and KeyCharacterMap.COMBINING_ACCENT) != 0){

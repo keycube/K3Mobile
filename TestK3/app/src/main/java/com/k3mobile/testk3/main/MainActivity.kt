@@ -1,5 +1,6 @@
 package com.k3mobile.testk3.main
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -169,8 +170,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("GestureBackNavigation")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.repeatCount > 0) return super.onKeyDown(keyCode, event)
+
+        if (keyCode == KeyEvent.KEYCODE_BACK) return super.onKeyDown(keyCode, event)
 
         if (K3AppState.isServiceConnected) {
             // Le service d'accessibilité a DÉJÀ émis cet événement dans K3AppState.
