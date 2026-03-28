@@ -28,6 +28,9 @@ class K3SoundManager(context: Context) {
     /** Volume des effets sonores, 0–100. */
     private var volume: Int = 70
 
+    /** Si false, toutes les vibrations sont ignorées. */
+    var vibrationEnabled: Boolean = true
+
     private var toneGenerator: ToneGenerator? = createToneGenerator(volume)
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -87,6 +90,7 @@ class K3SoundManager(context: Context) {
     // -------------------------------------------------------------------------
 
     fun vibrateVictory() {
+        if (!vibrationEnabled) return
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(
@@ -96,7 +100,7 @@ class K3SoundManager(context: Context) {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(longArrayOf(0, 200, 150, 400), -1)
             }
-        } catch (_: SecurityException) { /* permission VIBRATE manquante */ }
+        } catch (_: SecurityException) { }
     }
 
     // -------------------------------------------------------------------------

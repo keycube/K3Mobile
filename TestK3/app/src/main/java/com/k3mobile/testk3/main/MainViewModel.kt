@@ -75,6 +75,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             sound.setVolume(value)
         }
 
+    /** Vibrations activées ou non. */
+    var savedVibrationEnabled: Boolean
+        get() = prefs.getBoolean("vibration_enabled", true)
+        set(value) = prefs.edit().putBoolean("vibration_enabled", value).apply()
+
     /** Code langue sauvegardé : "fr", "en", "es". */
     var savedLanguage: String
         get() = prefs.getString(KEY_LANGUAGE, "fr") ?: "fr"
@@ -150,6 +155,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
                 // Restaurer le volume des effets
                 sound.setVolume(savedEffectsVolume)
+                sound.vibrationEnabled = savedVibrationEnabled
 
                 _isTtsReady.value = true
             }

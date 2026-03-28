@@ -106,6 +106,7 @@
     <string name="sound_title">Son</string>
     <string name="audio_volume">Volume de l\'audio</string>
     <string name="effects_volume">Volume des effets</string>
+    <string name="vibration_enabled">Vibrations</string>
 
     <!-- LanguageScreen -->
     <string name="language_title">Langues</string>

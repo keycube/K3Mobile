@@ -104,8 +104,9 @@
 
     <!-- SoundScreen -->
     <string name="sound_title">Sound</string>
-    <string name="audio_volume">Audio volume:</string>
-    <string name="effects_volume">Effects volume:</string>
+    <string name="audio_volume">Audio volume</string>
+    <string name="effects_volume">Effects volume</string>
+    <string name="vibration_enabled">Vibrations</string>
 
     <!-- LanguageScreen -->
     <string name="language_title">Languages</string>

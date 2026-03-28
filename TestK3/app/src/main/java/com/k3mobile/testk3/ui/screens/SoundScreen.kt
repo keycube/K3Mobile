@@ -20,6 +20,7 @@ import kotlin.math.roundToInt
 fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
     var ttsVolume     by remember { mutableStateOf(model.savedTtsVolume) }
     var effectsVolume by remember { mutableStateOf(model.savedEffectsVolume) }
+    var vibrationEnabled by remember { mutableStateOf(model.savedVibrationEnabled) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Icon(imageVector = Icons.Default.Settings, contentDescription = null,
@@ -49,13 +50,34 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.onBackground, activeTrackColor = MaterialTheme.colorScheme.onBackground))
             Text("$effectsVolume%", style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.CenterHorizontally))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.vibration_enabled), style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = vibrationEnabled,
+                    onCheckedChange = { vibrationEnabled = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color.Black,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color.LightGray
+                    )
+                )
+            }
+
 
             Spacer(modifier = Modifier.weight(1f))
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onBack) { Text(stringResource(R.string.back), color = Color.Black, fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(24.dp))
-                Button(onClick = { model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume; onBack() },
+                Button(onClick = { model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume; model.savedVibrationEnabled = vibrationEnabled;
+                    model.sound.vibrationEnabled = vibrationEnabled; onBack() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background) }
             }
