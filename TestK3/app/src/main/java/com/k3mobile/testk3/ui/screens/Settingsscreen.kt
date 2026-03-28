@@ -35,8 +35,6 @@ fun SettingsScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Icon(imageVector = Icons.Default.Settings, contentDescription = null,
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).size(22.dp), tint = Color.Black)
 
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(40.dp))

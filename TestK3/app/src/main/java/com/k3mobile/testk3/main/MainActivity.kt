@@ -16,6 +16,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import com.k3mobile.testk3.ui.theme.TestK3Theme
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,9 +60,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
+            TestK3Theme {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {                    val navController = rememberNavController()
                     val viewModel = sharedViewModel
 
                     NavHost(navController = navController, startDestination = "home") {
