@@ -57,4 +57,23 @@ interface TypingDao {
 
     @Query("DELETE FROM texts WHERE idText = :id")
     suspend fun deleteText(id: Long)
+
+    @Query("""
+    SELECT 
+        s.idSession,
+        s.textId,
+        COALESCE(t.title, 'Texte supprimé') AS textTitle,
+        s.timeStamp,
+        s.duration,
+        s.wpm,
+        s.accuracy
+    FROM session_table s
+    LEFT JOIN texts t ON s.textId = t.idText
+    ORDER BY s.timeStamp DESC
+    LIMIT :limit OFFSET :offset
+""")
+    suspend fun getSessionsWithTitlePaged(limit: Int, offset: Int): List<SessionWithTitle>
+
+    @Query("SELECT COUNT(*) FROM session_table")
+    suspend fun getSessionCount(): Int
 }

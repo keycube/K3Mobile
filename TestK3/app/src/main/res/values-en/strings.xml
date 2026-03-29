@@ -130,6 +130,7 @@
     <string name="metric_speed">Speed</string>
     <string name="metric_accuracy">Accuracy</string>
     <string name="metric_duration">Duration</string>
+    <string name="load_more">Load more</string>
 
     <!-- WelcomeScreen -->
     <string name="welcome_title">Welcome to</string>

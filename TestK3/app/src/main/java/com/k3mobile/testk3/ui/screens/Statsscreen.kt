@@ -33,11 +33,13 @@ import kotlin.math.roundToInt
 @Composable
 fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
     val sessions by model.sessionsWithTitle.collectAsState()
+    val totalCount by model.totalSessionCount.collectAsState()
+    val hasMore by model.hasMoreSessions.collectAsState()
+
     LaunchedEffect(Unit) { model.loadStats() }
 
     val bestWpm = sessions.maxOfOrNull { it.wpm }?.roundToInt() ?: 0
     val avgAccuracy = if (sessions.isNotEmpty()) sessions.map { it.accuracy }.average().roundToInt() else 0
-    val totalSessions = sessions.size
     val last10 = sessions.take(10).reversed()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -63,19 +65,29 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item {
                     Text(stringResource(R.string.stats_title), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    val s = if (totalSessions > 1) "s" else ""
-                    Text(stringResource(R.string.sessions_count, totalSessions, s, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                    val s = if (totalCount > 1) "s" else ""
+                    Text(stringResource(R.string.sessions_count, totalCount, s, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
                 }
                 item {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         SummaryCard(Modifier.weight(1f), "$bestWpm", "WPM", stringResource(R.string.best_speed))
                         SummaryCard(Modifier.weight(1f), "$avgAccuracy", "%", stringResource(R.string.avg_accuracy))
-                        SummaryCard(Modifier.weight(1f), "$totalSessions", "", stringResource(R.string.total_sessions))
+                        SummaryCard(Modifier.weight(1f), "$totalCount", "", stringResource(R.string.total_sessions))
                     }
                 }
                 if (last10.size >= 2) { item { ProgressChart(sessions = last10) } }
                 item { Text(stringResource(R.string.history), fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) }
-                items(sessions) { session -> SessionCard(session = session) }
+                items(sessions, key = { it.timeStamp }) { session -> SessionCard(session = session) }
+
+                if (hasMore) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                            OutlinedButton(onClick = { model.loadMoreSessions() }) {
+                                Text(stringResource(R.string.load_more), color = Color.Black)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

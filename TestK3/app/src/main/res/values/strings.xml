@@ -130,6 +130,7 @@
     <string name="metric_speed">Vitesse</string>
     <string name="metric_accuracy">Précision</string>
     <string name="metric_duration">Durée</string>
+    <string name="load_more">Charger plus</string>
 
     <!-- WelcomeScreen -->
     <string name="welcome_title">Bienvenue sur</string>

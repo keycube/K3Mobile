@@ -18,6 +18,7 @@ import com.k3mobile.testk3.data.SessionEntity
 import com.k3mobile.testk3.main.K3AppState
 import com.k3mobile.testk3.main.K3KeyInput
 import com.k3mobile.testk3.main.K3SoundManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -324,27 +325,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     // Sessions
     // -------------------------------------------------------------------------
 
-    private val _sessions = MutableStateFlow<List<SessionEntity>>(emptyList())
-    val sessions = _sessions.asStateFlow()
-
     private val _sessionsWithTitle = MutableStateFlow<List<SessionWithTitle>>(emptyList())
     val sessionsWithTitle = _sessionsWithTitle.asStateFlow()
 
+    private val _totalSessionCount = MutableStateFlow(0)
+    val totalSessionCount = _totalSessionCount.asStateFlow()
+
+    private val _hasMoreSessions = MutableStateFlow(false)
+    val hasMoreSessions = _hasMoreSessions.asStateFlow()
+
+    private var currentOffset = 0
+    private val pageSize = 5
+
+    /** Charge la première page de sessions (reset). */
     fun loadStats() {
-        viewModelScope.launch {
-            _sessions.value = dao.getAllSessions()
-            _sessionsWithTitle.value = dao.getAllSessionsWithTitle()
+        currentOffset = 0
+        viewModelScope.launch(Dispatchers.IO) {
+            _totalSessionCount.value = dao.getSessionCount()
+            val page = dao.getSessionsWithTitlePaged(pageSize, 0)
+            _sessionsWithTitle.value = page
+            currentOffset = page.size
+            _hasMoreSessions.value = currentOffset < _totalSessionCount.value
+        }
+    }
+
+    /** Charge la page suivante et l'ajoute à la liste existante. */
+    fun loadMoreSessions() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val page = dao.getSessionsWithTitlePaged(pageSize, currentOffset)
+            _sessionsWithTitle.value = _sessionsWithTitle.value + page
+            currentOffset += page.size
+            _hasMoreSessions.value = currentOffset < _totalSessionCount.value
         }
     }
 
     fun saveSession(textId: Long, durationMillis: Long, wpm: Double, accuracy: Double) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             dao.insertSession(SessionEntity(textId = textId, duration = durationMillis, wpm = wpm, accuracy = accuracy, timeStamp = System.currentTimeMillis()))
         }
     }
 
     fun deleteCustomText(id: Long) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             dao.deleteText(id)
             loadTextsByCategory("textes personnalisées")
         }
