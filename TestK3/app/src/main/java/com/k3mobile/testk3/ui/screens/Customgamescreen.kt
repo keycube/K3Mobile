@@ -111,8 +111,6 @@ fun CustomGameScreen(
             Spacer(modifier = Modifier.height(32.dp))
             Text(stringResource(R.string.setup_game), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 30.sp)
             Spacer(modifier = Modifier.height(32.dp))
-            StepIndicator(currentStep = step)
-            Spacer(modifier = Modifier.height(24.dp))
             Text(stringResource(R.string.text_type), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
 
             var expanded by remember { mutableStateOf(false) }
@@ -151,23 +149,3 @@ fun CustomGameScreen(
 }
 
 enum class AudioStep { CATEGORY, SPEED, CONFIRM }
-
-@Composable
-private fun StepIndicator(currentStep: AudioStep) {
-    val steps = listOf(stringResource(R.string.step_text_type), stringResource(R.string.step_speed), stringResource(R.string.step_confirm))
-    val currentIdx = currentStep.ordinal
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        steps.forEachIndexed { idx, label ->
-            val active = idx == currentIdx; val done = idx < currentIdx
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = when { active -> MaterialTheme.colorScheme.onBackground; done -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f); else -> MaterialTheme.colorScheme.surfaceVariant },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("${idx + 1}. $label", fontSize = 11.sp,
-                    color = when { active || done -> MaterialTheme.colorScheme.background; else -> MaterialTheme.colorScheme.onSurfaceVariant },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
-            }
-        }
-    }
-}

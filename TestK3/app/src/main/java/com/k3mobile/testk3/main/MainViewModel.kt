@@ -342,4 +342,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             dao.insertSession(SessionEntity(textId = textId, duration = durationMillis, wpm = wpm, accuracy = accuracy, timeStamp = System.currentTimeMillis()))
         }
     }
+
+    fun deleteCustomText(id: Long) {
+        viewModelScope.launch {
+            dao.deleteText(id)
+            loadTextsByCategory("textes personnalisées")
+        }
+    }
 }

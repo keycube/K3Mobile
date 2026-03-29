@@ -2,12 +2,14 @@ package com.k3mobile.testk3.ui.screens
 
 import android.view.KeyEvent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -113,30 +115,47 @@ fun TextListScreen(
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-                    items(texts.take(9).mapIndexed { i, t -> i to t }) { (idx, textEntity) ->
+                    items(
+                        items = texts.take(9).mapIndexed { i, t -> i to t },
+                        key = { (_, t) -> t.idText }
+                    ) { (idx, textEntity) ->
                         val isSelected = !readOnly && selectedIndex == idx
-                        Card(
-                            onClick = {
-                                if (readOnly) { if (isCustomCategory) textToEdit = textEntity }
-                                else { model.pendingTextId = null; onTextSelected(textEntity.idText) }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = if (isSelected) Color(0xFFF0F0F0) else Color.White),
-                            elevation = CardDefaults.cardElevation(0.dp),
-                            border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.Black else Color(0xFFE0E0E0))
-                        ) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                if (!readOnly) { Text("${idx + 1}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(end = 12.dp).width(16.dp)) }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(textEntity.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp)
+                        val canSwipeDelete = readOnly && isCustomCategory
+
+                        if (canSwipeDelete) {
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.EndToStart) {
+                                        model.deleteCustomText(textEntity.idText)
+                                        true
+                                    } else false
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(36.dp)) {
-                                    Box(contentAlignment = Alignment.Center) { Text(if (readOnly && isCustomCategory) "✎" else "→", color = Color.White, fontSize = 16.sp) }
-                                }
+                            )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color(0xFFE53935), MaterialTheme.shapes.medium)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                    }
+                                },
+                                enableDismissFromStartToEnd = false,
+                                enableDismissFromEndToStart = true
+                            ) {
+                                TextItemCard(textEntity, idx, readOnly, isSelected, isCustomCategory,
+                                    onClick = { if (isCustomCategory) textToEdit = textEntity })
                             }
+                        } else {
+                            TextItemCard(textEntity, idx, readOnly, isSelected, isCustomCategory,
+                                onClick = {
+                                    if (readOnly) { if (isCustomCategory) textToEdit = textEntity }
+                                    else { model.pendingTextId = null; onTextSelected(textEntity.idText) }
+                                })
                         }
                     }
                 }
@@ -151,6 +170,34 @@ fun TextListScreen(
     if (textToEdit != null) {
         TextDialog(title = textToEdit!!.title, content = textToEdit!!.content, dialogTitle = stringResource(R.string.edit_text), confirmLabel = stringResource(R.string.save),
             onConfirm = { t, c -> model.updateCustomText(textToEdit!!.idText, t, c); textToEdit = null }, onDismiss = { textToEdit = null })
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TextItemCard(
+    textEntity: TextEntity, idx: Int, readOnly: Boolean,
+    isSelected: Boolean, isCustomCategory: Boolean, onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = if (isSelected) Color(0xFFF0F0F0) else Color.White),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.Black else Color(0xFFE0E0E0))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (!readOnly) { Text("${idx + 1}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(end = 12.dp).width(16.dp)) }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(textEntity.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(36.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text(if (readOnly && isCustomCategory) "✎" else "→", color = Color.White, fontSize = 16.sp) }
+            }
+        }
     }
 }
 

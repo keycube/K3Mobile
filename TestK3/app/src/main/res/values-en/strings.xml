@@ -22,7 +22,7 @@
     <!-- CustomGameScreen -->
     <string name="setup_game">Set up a game!</string>
     <string name="text_type">Text type</string>
-    <string name="audio_speed">Audio speed</string>
+    <string name="audio_speed">Reading speed</string>
     <string name="words_per_sec">words/sec</string>
     <string name="cat_phrases">Phrases</string>
     <string name="cat_stories">Stories</string>

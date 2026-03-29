@@ -54,4 +54,7 @@ interface TypingDao {
 
     @Query("UPDATE texts SET title = :title, content = :content WHERE idText = :id")
     suspend fun updateText(id: Long, title: String, content: String)
+
+    @Query("DELETE FROM texts WHERE idText = :id")
+    suspend fun deleteText(id: Long)
 }

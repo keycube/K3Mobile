@@ -22,7 +22,7 @@
     <!-- CustomGameScreen -->
     <string name="setup_game">¡Configurar una partida!</string>
     <string name="text_type">Tipo de texto</string>
-    <string name="audio_speed">Velocidad del audio</string>
+    <string name="audio_speed">Velocidad de lectura</string>
     <string name="words_per_sec">palabras/seg</string>
     <string name="cat_phrases">Frases</string>
     <string name="cat_stories">Historias</string>
