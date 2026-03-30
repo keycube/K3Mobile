@@ -304,18 +304,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val texts = _texts.asStateFlow()
 
     fun loadTextsByCategory(category: String) {
-        viewModelScope.launch { _texts.value = dao.getTextsByCategory(category) }
+        viewModelScope.launch(Dispatchers.IO) { _texts.value = dao.getTextsByCategory(category) }
     }
 
     fun addCustomText(title: String, content: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             dao.insertText(TextEntity(0, title, content, "fr", "textes personnalisées", 1))
             loadTextsByCategory("textes personnalisées")
         }
     }
 
     fun updateCustomText(id: Long, title: String, content: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             dao.updateText(id, title, content)
             loadTextsByCategory("textes personnalisées")
         }

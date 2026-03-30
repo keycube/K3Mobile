@@ -117,7 +117,22 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
 
             val values = sessions.map { if (showWpm) it.wpm.toFloat() else it.accuracy.toFloat() }
             val lineColor = Color.White; val fillColor = Color.White.copy(alpha = 0.08f); val dotColor = Color.White
-            val gridColor = Color.White.copy(alpha = 0.1f); val labelColor = android.graphics.Color.argb(120, 255, 255, 255)
+            val gridColor = Color.White.copy(alpha = 0.1f)
+
+            val gridPaint = remember {
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.argb(120, 255, 255, 255)
+                    textSize = 22f
+                    textAlign = android.graphics.Paint.Align.RIGHT
+                }
+            }
+            val labelPaint = remember {
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.argb(120, 255, 255, 255)
+                    textSize = 22f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+            }
 
             Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                 val w = size.width; val h = size.height
@@ -129,7 +144,7 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                     val y = paddingTop + chartH - (i.toFloat() / 3) * chartH
                     drawLine(gridColor, Offset(paddingLeft, y), Offset(w - paddingRight, y), 1f)
                     drawContext.canvas.nativeCanvas.drawText("${(minVal + (i.toFloat() / 3) * range).roundToInt()}", paddingLeft - 6f, y + 5f,
-                        android.graphics.Paint().apply { color = labelColor; textSize = 22f; textAlign = android.graphics.Paint.Align.RIGHT })
+                        gridPaint)
                 }
 
                 val points = values.mapIndexed { i, v ->
@@ -150,7 +165,7 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                 points.forEachIndexed { i, pt ->
                     drawCircle(Color.Black, 6f, pt); drawCircle(dotColor, 4f, pt)
                     drawContext.canvas.nativeCanvas.drawText("${i + 1}", pt.x, h - 4f,
-                        android.graphics.Paint().apply { color = labelColor; textSize = 22f; textAlign = android.graphics.Paint.Align.CENTER })
+                        labelPaint)
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
