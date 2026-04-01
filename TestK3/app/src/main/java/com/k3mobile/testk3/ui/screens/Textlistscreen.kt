@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,7 +82,12 @@ fun TextListScreen(
     Scaffold(
         floatingActionButton = {
             if (isCustomCategory) {
-                FloatingActionButton(onClick = { showAddDialog = true }, containerColor = Color.Black, contentColor = Color.White) {
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    containerColor = Color.Black,
+                    contentColor = Color.White,
+                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_text))
                 }
             }
@@ -193,9 +199,14 @@ private fun TextItemCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp)
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(36.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text(if (readOnly && isCustomCategory) "✎" else "→", color = Color.White, fontSize = 16.sp) }
+            if (!(readOnly && isCustomCategory)) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
