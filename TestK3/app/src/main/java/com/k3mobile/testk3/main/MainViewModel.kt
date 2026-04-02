@@ -100,9 +100,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     // Navigation clavier — délégué à K3AppState
     // -------------------------------------------------------------------------
 
-    // Propriété calculée : retourne toujours le channel courant de K3AppState.
-    // Important : ne pas stocker la référence dans un val, car resetKeyChannel()
-    // crée un nouveau channel — il faut toujours lire K3AppState.keyChannel.
     val keyChannel get() = K3AppState.keyChannel
 
     var isInTypingMode: Boolean
@@ -113,12 +110,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun emitKeyEvent(keyCode: Int, unicodeChar: Int = 0) = K3AppState.emitKey(keyCode, unicodeChar)
 
-    /**
-     * Réinitialise le channel clavier. À appeler depuis MainActivity juste
-     * avant chaque navigation déclenchée par une touche, pour s'assurer que
-     * l'ancien écran (dont le LaunchedEffect tourne encore pendant la transition)
-     * ne reçoit plus aucune touche destinée au nouvel écran.
-     */
     fun resetKeyChannel() = K3AppState.resetKeyChannel()
 
     // -------------------------------------------------------------------------
@@ -137,14 +128,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            // Restaurer la langue sauvegardée
             val locale = localeForCode(savedLanguage)
             val result = tts?.setLanguage(locale)
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 tts?.setSpeechRate(0.9f)
                 loadAvailableVoices()
 
-                // Restaurer la voix sauvegardée
                 val savedVoiceName = prefs.getString(KEY_VOICE_NAME, null)
                 if (savedVoiceName != null) {
                     val savedVoice = _availableVoices.value.find { it.name == savedVoiceName }
@@ -154,7 +143,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     }
                 }
 
-                // Restaurer le volume des effets
                 sound.setVolume(savedEffectsVolume)
                 sound.vibrationEnabled = savedVibrationEnabled
 
@@ -163,7 +151,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    /** Convertit un code langue en Locale. */
     private fun localeForCode(code: String): java.util.Locale = when (code) {
         "en" -> java.util.Locale.ENGLISH
         "es" -> java.util.Locale("es")
@@ -180,16 +167,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         _selectedVoice.value = tts?.voice
     }
 
-    /**
-     * Change la langue du TTS et recharge les voix disponibles.
-     * Réinitialise la voix sélectionnée vers la voix par défaut de la nouvelle langue.
-     */
     fun setLanguage(code: String) {
         savedLanguage = code
         val locale = localeForCode(code)
         tts?.setLanguage(locale)
         loadAvailableVoices()
-        // Sélectionner la première voix disponible dans la nouvelle langue
         val firstVoice = _availableVoices.value.firstOrNull()
         if (firstVoice != null) {
             tts?.voice = firstVoice
@@ -218,7 +200,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     // TTS — lecture
     // -------------------------------------------------------------------------
 
-    /** Crée un Bundle avec le volume TTS courant. */
     private fun volumeBundle(): Bundle = Bundle().apply {
         putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, _ttsVolume)
     }
@@ -233,14 +214,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         tts?.speak(text, TextToSpeech.QUEUE_ADD, volumeBundle(), "queued_${System.currentTimeMillis()}")
     }
 
-    /**
-     * Parle toutes les [phrases] en séquence, puis appelle [onDone] sur le
-     * MAIN THREAD quand la dernière est terminée.
-     *
-     * UtteranceProgressListener.onDone() est déclenché sur un thread background
-     * par le moteur TTS — sans mainHandler.post(), la navigation Compose plante
-     * silencieusement sur écran verrouillé.
-     */
     fun speakThenDo(phrases: List<String>, onDone: () -> Unit) {
         if (!_isTtsReady.value) { mainHandler.post(onDone); return }
         if (phrases.isEmpty())  { mainHandler.post(onDone); return }
@@ -253,7 +226,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             override fun onDone(utteranceId: String?) {
                 if (utteranceId == lastId) {
                     tts?.setOnUtteranceProgressListener(null)
-                    mainHandler.post(onDone)   // ← main thread obligatoire
+                    mainHandler.post(onDone)
                 }
             }
 
@@ -334,14 +307,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val _hasMoreSessions = MutableStateFlow(false)
     val hasMoreSessions = _hasMoreSessions.asStateFlow()
 
+    // -------------------------------------------------------------------------
+    // Stats globales — indépendantes de la pagination
+    // -------------------------------------------------------------------------
+
+    /** Meilleur WPM sur toutes les sessions enregistrées. */
+    private val _globalBestWpm = MutableStateFlow(0)
+    val globalBestWpm = _globalBestWpm.asStateFlow()
+
+    /** Précision moyenne sur toutes les sessions enregistrées. */
+    private val _globalAvgAccuracy = MutableStateFlow(0)
+    val globalAvgAccuracy = _globalAvgAccuracy.asStateFlow()
+
+    /** Durée totale cumulée (ms) sur toutes les sessions. */
+    private val _globalTotalDuration = MutableStateFlow(0L)
+    val globalTotalDuration = _globalTotalDuration.asStateFlow()
+
+    /**
+     * Les 10 dernières sessions pour le graphique, triées de la plus ancienne
+     * à la plus récente (ordre chronologique pour le graphe).
+     */
+    private val _chartSessions = MutableStateFlow<List<SessionWithTitle>>(emptyList())
+    val chartSessions = _chartSessions.asStateFlow()
+
     private var currentOffset = 0
     private val pageSize = 5
 
-    /** Charge la première page de sessions (reset). */
+    /** Charge toutes les stats globales + la première page de l'historique. */
     fun loadStats() {
         currentOffset = 0
         viewModelScope.launch(Dispatchers.IO) {
-            _totalSessionCount.value = dao.getSessionCount()
+            // Stats globales depuis la BDD entière
+            _totalSessionCount.value   = dao.getSessionCount()
+            _globalBestWpm.value       = dao.getGlobalBestWpm()?.toInt() ?: 0
+            _globalAvgAccuracy.value   = dao.getGlobalAvgAccuracy()?.toInt() ?: 0
+            _globalTotalDuration.value = dao.getGlobalTotalDuration() ?: 0L
+
+            // 10 dernières sessions pour le graphique (ordre chronologique)
+            _chartSessions.value = dao.getLastSessionsForChart(10).reversed()
+
+            // Première page de l'historique
             val page = dao.getSessionsWithTitlePaged(pageSize, 0)
             _sessionsWithTitle.value = page
             currentOffset = page.size

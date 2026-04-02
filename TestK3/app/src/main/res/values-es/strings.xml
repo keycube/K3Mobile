@@ -72,9 +72,10 @@
     <string name="tts_duration">Duración: %s.</string>
     <string name="tts_speed_result">Velocidad: %d palabras por minuto.</string>
     <string name="tts_accuracy_result">Precisión: %d por ciento.</string>
-    <string name="tts_back_to_menu">Volver al menú principal.</string>
     <string name="duration_min_sec">%1$d minuto%2$s y %3$d segundos</string>
     <string name="duration_sec">%d segundos</string>
+    <string name="back_to_menu">Volver al menú</string>
+    <string name="tts_back_to_menu">Pulse Intro para volver al menú.</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Ajustes</string>
@@ -131,6 +132,8 @@
     <string name="metric_accuracy">Precisión</string>
     <string name="metric_duration">Duración</string>
     <string name="load_more">Cargar más</string>
+    <string name="total_time">Tiempo Total</string>
+
 
     <!-- WelcomeScreen -->
     <string name="welcome_title">Bienvenido a</string>

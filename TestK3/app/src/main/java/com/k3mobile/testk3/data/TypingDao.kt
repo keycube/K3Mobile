@@ -76,4 +76,40 @@ interface TypingDao {
 
     @Query("SELECT COUNT(*) FROM session_table")
     suspend fun getSessionCount(): Int
+
+    // -------------------------------------------------------------------------
+    // Stats globales — calculées sur TOUTE la BDD, indépendamment de la pagination
+    // -------------------------------------------------------------------------
+
+    /** Meilleur WPM toutes sessions confondues. */
+    @Query("SELECT MAX(wpm) FROM session_table")
+    suspend fun getGlobalBestWpm(): Double?
+
+    /** Précision moyenne toutes sessions confondues. */
+    @Query("SELECT AVG(accuracy) FROM session_table")
+    suspend fun getGlobalAvgAccuracy(): Double?
+
+    /** Durée totale cumulée (ms) toutes sessions confondues. */
+    @Query("SELECT SUM(duration) FROM session_table")
+    suspend fun getGlobalTotalDuration(): Long?
+
+    /**
+     * Les [limit] dernières sessions pour le graphique de progression,
+     * triées de la plus ancienne à la plus récente.
+     */
+    @Query("""
+        SELECT 
+            s.idSession,
+            s.textId,
+            COALESCE(t.title, 'Texte supprimé') AS textTitle,
+            s.timeStamp,
+            s.duration,
+            s.wpm,
+            s.accuracy
+        FROM session_table s
+        LEFT JOIN texts t ON s.textId = t.idText
+        ORDER BY s.timeStamp DESC
+        LIMIT :limit
+    """)
+    suspend fun getLastSessionsForChart(limit: Int): List<SessionWithTitle>
 }

@@ -57,7 +57,7 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
                     item { ActiveVoiceBanner(context, active, onPreview = { previewingVoiceName = active.name; model.previewVoice(active) }) }
                     item { Text(stringResource(R.string.change_voice), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(top = 4.dp)) }
                 }
-                items(voices) { voice ->
+                items(voices, key = {it.name}) { voice ->
                     VoiceItem(context, voice, isSelected = voice.name == selectedVoice?.name, isPreviewing = previewingVoiceName == voice.name,
                         onSelect = { model.selectVoice(voice) }, onPreview = { previewingVoiceName = voice.name; model.previewVoice(voice) })
                 }
@@ -73,8 +73,10 @@ private fun ActiveVoiceBanner(context: android.content.Context, voice: Voice, on
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.active_voice), fontSize = 11.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(formatVoiceName(voice.name), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                Text(formatVoiceDetails(context, voice), fontSize = 12.sp, color = Color.LightGray, modifier = Modifier.padding(top = 2.dp))
+                val displayName = remember(voice.name) { formatVoiceName(voice.name) }
+                val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
+                Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                Text(displayDetails, fontSize = 12.sp, color = Color.LightGray, modifier = Modifier.padding(top = 2.dp))
             }
             OutlinedButton(onClick = onPreview, border = BorderStroke(1.dp, Color.White),
                 colors = ButtonColors(containerColor = Color.Transparent, contentColor = Color.White, disabledContainerColor = Color.Transparent, disabledContentColor = Color.Gray)
@@ -97,8 +99,10 @@ private fun VoiceItem(context: android.content.Context, voice: Voice, isSelected
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(formatVoiceName(voice.name), fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 15.sp)
-                Text(formatVoiceDetails(context, voice), fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
+                val displayName = remember(voice.name) { formatVoiceName(voice.name) }
+                val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
+                Text(displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 15.sp)
+                Text(displayDetails, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
             }
             Spacer(modifier = Modifier.width(8.dp))
             TextButton(onClick = onPreview, colors = ButtonDefaults.textButtonColors(contentColor = if (isPreviewing) Color(0xFF4CAF50) else Color.Black)) {

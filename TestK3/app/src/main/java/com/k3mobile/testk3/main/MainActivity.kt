@@ -11,10 +11,9 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -70,10 +69,10 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "home",
-                        enterTransition = { EnterTransition.None },
-                        exitTransition = { ExitTransition.None },
-                        popEnterTransition = { EnterTransition.None },
-                        popExitTransition = { ExitTransition.None }
+                        enterTransition = { fadeIn(animationSpec = androidx.compose.animation.core.tween(100)) },
+                        exitTransition = { fadeOut(animationSpec = androidx.compose.animation.core.tween(100)) },
+                        popEnterTransition = { fadeIn(animationSpec = androidx.compose.animation.core.tween(100)) },
+                        popExitTransition = { fadeOut(animationSpec = androidx.compose.animation.core.tween(100)) }
                     ) {
 
                         composable("home") {

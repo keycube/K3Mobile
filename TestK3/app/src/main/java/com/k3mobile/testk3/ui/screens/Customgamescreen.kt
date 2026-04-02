@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +45,12 @@ fun CustomGameScreen(
     var categoryIndex by remember { mutableStateOf(model.savedCategoryIndex) }
     var speedIndex    by remember { mutableStateOf(model.savedSpeedIndex) }
     var step          by remember { mutableStateOf(AudioStep.CATEGORY) }
+    var customTextCount by remember { mutableStateOf(-1) }
+    LaunchedEffect(Unit) {
+        model.loadTextsByCategory("textes personnalisées")
+        kotlinx.coroutines.delay(300)
+        customTextCount = model.texts.value.size
+    }
     val speed = speedValues[speedIndex]
 
     val ttsChooseType  = stringResource(R.string.tts_choose_text_type)
@@ -60,10 +67,14 @@ fun CustomGameScreen(
                         KeyEvent.KEYCODE_1 -> 0; KeyEvent.KEYCODE_2 -> 1; KeyEvent.KEYCODE_3 -> 2; else -> -1
                     }
                     if (idx >= 0) {
-                        categoryIndex = idx
-                        model.speak(context.getString(R.string.tts_selected, categoryLabels[idx]))
-                        model.speakQueued(ttsChooseSpeed)
-                        step = AudioStep.SPEED
+                        if (idx == 2 && customTextCount == 0) {
+                            model.speak(context.getString(R.string.tts_no_text))
+                        } else {
+                            categoryIndex = idx
+                            model.speak(context.getString(R.string.tts_selected, categoryLabels[idx]))
+                            model.speakQueued(ttsChooseSpeed)
+                            step = AudioStep.SPEED
+                        }
                     } else if (keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_BACK) {
                         model.stopSpeaking(); onAnnuler()
                     }
@@ -118,9 +129,18 @@ fun CustomGameScreen(
                 OutlinedTextField(value = categoryLabels[categoryIndex], onValueChange = {}, readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth())
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    containerColor = Color.White
+                ) {
                     categoryLabels.forEachIndexed { idx, label ->
-                        DropdownMenuItem(text = { Text(label) }, onClick = { categoryIndex = idx; expanded = false })
+                        val isCustomEmpty = idx == 2 && customTextCount == 0
+                        DropdownMenuItem(
+                            text = { Text(label, color = if (isCustomEmpty) Color.LightGray else Color.Black) },
+                            onClick = { if (!isCustomEmpty) { categoryIndex = idx; expanded = false } },
+                            enabled = !isCustomEmpty
+                        )
                     }
                 }
             }

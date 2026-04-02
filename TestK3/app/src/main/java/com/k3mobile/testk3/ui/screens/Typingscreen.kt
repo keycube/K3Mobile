@@ -5,6 +5,7 @@ import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,6 +53,10 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     val focusRequester       = remember { FocusRequester() }
     var hasStarted           by remember { mutableStateOf(false) }
     var isFinishing          by remember { mutableStateOf(false) }
+    var showResults          by remember { mutableStateOf(false) }
+    var resultWpm            by remember { mutableStateOf(0) }
+    var resultAccuracy       by remember { mutableStateOf(0) }
+    var resultDurationSec   by remember { mutableStateOf(0L) }
 
     DisposableEffect(Unit) { model.isInTypingMode = true; onDispose { model.isInTypingMode = false } }
 
@@ -104,16 +109,16 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
                 context.getString(R.string.duration_min_sec, minPart, if (minPart > 1) "s" else "", secPart)
             else context.getString(R.string.duration_sec, secPart)
 
-            model.speakThenDo(
-                phrases = listOf(
-                    ttsBravo,
-                    context.getString(R.string.tts_duration, durationText),
-                    context.getString(R.string.tts_speed_result, wpmRounded),
-                    context.getString(R.string.tts_accuracy_result, accRounded),
-                    ttsBackToMenu
-                ),
-                onDone = { onFinished() }
-            )
+            resultWpm = wpmRounded
+            resultAccuracy = accRounded
+            resultDurationSec = (System.currentTimeMillis() - startTime) / 1000
+            showResults = true
+
+            model.speak(ttsBravo)
+            model.speakQueued(context.getString(R.string.tts_duration, durationText))
+            model.speakQueued(context.getString(R.string.tts_speed_result, wpmRounded))
+            model.speakQueued(context.getString(R.string.tts_accuracy_result, accRounded))
+            model.speakQueued(ttsBackToMenu)
         }
     }
 
@@ -139,6 +144,12 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
 
     LaunchedEffect("typing_keys") {
         for (event in model.keyChannel) {
+            if (showResults) {
+                if (event.keyCode == KeyEvent.KEYCODE_ENTER) {
+                    model.stopSpeaking(); model.sound.playNavigation(); onFinished()
+                }
+                continue
+            }
             if (!hasStarted || isFinishing) continue
             when {
                 event.keyCode == KeyEvent.KEYCODE_ENTER -> goToNextSentence()
@@ -149,39 +160,95 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     }
 
     // UI
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        IconButton(onClick = { model.stopSpeaking(); onBack() }) { Text(stringResource(R.string.quit_button)) }
-        LinearProgressIndicator(progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
-        Spacer(modifier = Modifier.height(16.dp))
+    if (showResults) {
+        // Écran de résultats
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(stringResource(R.string.tts_bravo), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(textEntity.title, fontSize = 16.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(32.dp))
 
-        if (!hasStarted) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.get_ready), fontSize = 18.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Card(modifier = Modifier.weight(1f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = Color.Black), elevation = CardDefaults.cardElevation(0.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("$resultWpm", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("WPM", fontSize = 13.sp, color = Color.LightGray, modifier = Modifier.padding(start = 2.dp, bottom = 3.dp))
+                        }
+                        Text(stringResource(R.string.metric_speed), fontSize = 11.sp, color = Color.LightGray)
+                    }
+                }
+                Card(modifier = Modifier.weight(1f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = Color.Black), elevation = CardDefaults.cardElevation(0.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        val accuracyColor = when { resultAccuracy >= 90 -> Color(0xFF4CAF50); resultAccuracy >= 70 -> Color(0xFFFF9800); else -> Color(0xFFF44336) }
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("$resultAccuracy", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = accuracyColor)
+                            Text("%", fontSize = 13.sp, color = accuracyColor.copy(alpha = 0.7f), modifier = Modifier.padding(start = 2.dp, bottom = 3.dp))
+                        }
+                        Text(stringResource(R.string.metric_accuracy), fontSize = 11.sp, color = Color.LightGray)
+                    }
+                }
+                Card(modifier = Modifier.weight(1f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = Color.Black), elevation = CardDefaults.cardElevation(0.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("$resultDurationSec", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("s", fontSize = 13.sp, color = Color.LightGray, modifier = Modifier.padding(start = 2.dp, bottom = 3.dp))
+                        }
+                        Text(stringResource(R.string.metric_duration), fontSize = 11.sp, color = Color.LightGray)
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Button(
+                onClick = { model.stopSpeaking(); model.sound.playNavigation(); onFinished() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
+            ) {
+                Text(stringResource(R.string.back_to_menu), color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(vertical = 4.dp))
+            }
         }
+    } else {
+        // Écran de frappe
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            IconButton(onClick = { model.stopSpeaking(); onBack() }) { Text(stringResource(R.string.quit_button)) }
+            LinearProgressIndicator(progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(rawTarget, fontSize = 22.sp, lineHeight = 32.sp,
-            color = when { !hasStarted -> Color.LightGray; isFinishedSentence -> Color(0xFF4CAF50); else -> Color.Black },
-            fontWeight = FontWeight.Medium)
-        Spacer(modifier = Modifier.height(20.dp))
+            if (!hasStarted) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(stringResource(R.string.get_ready), fontSize = 18.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
-        OutlinedTextField(
-            value = userInput, onValueChange = { if (hasStarted && !isFinishing) userInput = it.replace("\n", "") },
-            label = { Text(if (hasStarted) stringResource(R.string.type_here) else stringResource(R.string.waiting)) },
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-            enabled = hasStarted && !isFinishing, isError = isError, singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { goToNextSentence() }))
-        Spacer(modifier = Modifier.height(8.dp))
+            Text(rawTarget, fontSize = 22.sp, lineHeight = 32.sp,
+                color = when { !hasStarted -> Color.LightGray; isFinishedSentence -> Color(0xFF4CAF50); else -> Color.Black },
+                fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.sentence_progress, currentSentenceIndex + 1, sentences.size), fontSize = 12.sp, color = Color.Gray)
-            when {
-                isFinishing        -> Text(stringResource(R.string.session_end), fontSize = 12.sp, color = Color(0xFF4CAF50))
-                isError            -> Text(stringResource(R.string.correction_needed), fontSize = 12.sp, color = Color(0xFFE53935))
-                isFinishedSentence -> Text(stringResource(R.string.press_enter), fontSize = 12.sp, color = Color(0xFF4CAF50))
+            OutlinedTextField(
+                value = userInput, onValueChange = { if (hasStarted && !isFinishing) userInput = it.replace("\n", "") },
+                label = { Text(if (hasStarted) stringResource(R.string.type_here) else stringResource(R.string.waiting)) },
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                enabled = hasStarted && !isFinishing, isError = isError, singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { goToNextSentence() }))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.sentence_progress, currentSentenceIndex + 1, sentences.size), fontSize = 12.sp, color = Color.Gray)
+                when {
+                    isFinishing        -> Text(stringResource(R.string.session_end), fontSize = 12.sp, color = Color(0xFF4CAF50))
+                    isError            -> Text(stringResource(R.string.correction_needed), fontSize = 12.sp, color = Color(0xFFE53935))
+                    isFinishedSentence -> Text(stringResource(R.string.press_enter), fontSize = 12.sp, color = Color(0xFF4CAF50))
+                }
             }
         }
     }
