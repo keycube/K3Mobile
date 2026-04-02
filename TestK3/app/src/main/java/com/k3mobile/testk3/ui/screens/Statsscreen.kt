@@ -193,7 +193,7 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
         colors = CardDefaults.cardColors(containerColor = Color.Black),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
+        Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 12.dp)) {
 
             // ── En-tête ──────────────────────────────────────────────────────
             Row(
@@ -360,7 +360,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                     Canvas(modifier = Modifier.size(15.dp, 2.dp)) {
                         drawLine(Color(0xFFFFD54F).copy(alpha = 0.6f), Offset(0f, 1f), Offset(size.width, 1f), 2f)
                     }
-                    Text("tendance", fontSize = 10.sp, color = Color.Gray)
                 }
             }
         }
