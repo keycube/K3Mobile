@@ -2,7 +2,7 @@ package com.k3mobile.testk3.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,16 +22,19 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
     var effectsVolume by remember { mutableStateOf(model.savedEffectsVolume) }
     var vibrationEnabled by remember { mutableStateOf(model.savedVibrationEnabled) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Icon(imageVector = Icons.Default.Settings, contentDescription = null,
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).size(22.dp), tint = Color.Black)
-
-        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(40.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(text = stringResource(R.string.app_name), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.Black)
             }
-            Spacer(modifier = Modifier.height(40.dp))
+            Row(modifier = Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(text = stringResource(R.string.app_name), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        HorizontalDivider(color = Color.Black, thickness = 1.dp)
+
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+            Spacer(modifier = Modifier.height(24.dp))
             Text(stringResource(R.string.sound_title), fontSize = 28.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp))
 
@@ -70,14 +73,15 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 )
             }
 
-
             Spacer(modifier = Modifier.weight(1f))
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back), color = Color.Black, fontSize = 16.sp) }
                 Spacer(modifier = Modifier.width(24.dp))
-                Button(onClick = { model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume; model.savedVibrationEnabled = vibrationEnabled;
-                    model.sound.vibrationEnabled = vibrationEnabled; onBack() },
+                Button(onClick = {
+                    model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume
+                    model.savedVibrationEnabled = vibrationEnabled
+                    model.sound.vibrationEnabled = vibrationEnabled; onBack()
+                },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background) }
             }

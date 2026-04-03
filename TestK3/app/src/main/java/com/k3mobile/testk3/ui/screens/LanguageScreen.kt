@@ -2,7 +2,6 @@ package com.k3mobile.testk3.ui.screens
 
 import android.app.Activity
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageScreen(
     model: MainViewModel,
@@ -73,7 +73,8 @@ fun LanguageScreen(
                 languages.forEach { lang ->
                     val isSelected = selectedCode == lang.code
                     Card(
-                        modifier = Modifier.fillMaxWidth().clickable { selectedCode = lang.code },
+                        onClick = { selectedCode = lang.code },
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) Color(0xFFF5F5F5) else Color.White
                         ),
@@ -115,9 +116,6 @@ fun LanguageScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onBack) {
-                    Text(stringResource(R.string.back), color = Color.Black, fontSize = 16.sp)
-                }
                 Spacer(modifier = Modifier.width(24.dp))
                 Button(
                     onClick = {

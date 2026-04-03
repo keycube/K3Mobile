@@ -3,6 +3,7 @@ package com.k3mobile.testk3.ui.screens
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -107,19 +108,22 @@ fun CustomGameScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = onSettings, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)) {
+            IconButton(onClick = { model.stopSpeaking(); onAnnuler() }, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.Black)
+            }
+            Row(modifier = Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(text = stringResource(R.string.app_name), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
         }
+        HorizontalDivider(color = Color.Black, thickness = 1.dp)
+
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = stringResource(R.string.app_name), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(32.dp))
             Text(stringResource(R.string.setup_game), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 30.sp)
             Spacer(modifier = Modifier.height(32.dp))
             Text(stringResource(R.string.text_type), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
@@ -154,8 +158,6 @@ fun CustomGameScreen(
             Text("${speedLabels[speedIndex]} — ${(speed * 10).roundToInt() / 10f} ${stringResource(R.string.words_per_sec)}",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(48.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = onAnnuler) { Text(stringResource(R.string.cancel)) }
                 Button(
                     onClick = {
                         model.savedCategoryIndex = categoryIndex; model.savedSpeedIndex = speedIndex
@@ -163,7 +165,6 @@ fun CustomGameScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.confirm), color = MaterialTheme.colorScheme.background) }
-            }
         }
     }
 }
