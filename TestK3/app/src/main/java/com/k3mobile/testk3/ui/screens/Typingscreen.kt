@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.main.TypingForegroundService
@@ -215,39 +217,112 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
         }
     } else {
         // Écran de frappe
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            IconButton(onClick = { model.stopSpeaking(); onBack() }) { Text(stringResource(R.string.quit_button)) }
-            LinearProgressIndicator(progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!hasStarted) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.get_ready), fontSize = 18.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)
+            ) {
+                IconButton(
+                    onClick = { model.stopSpeaking(); onBack() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        tint = Color.Black
+                    )
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.align(Alignment.Center),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+            HorizontalDivider(color = Color.Black, thickness = 1.dp)
+            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                LinearProgressIndicator(
+                    progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text(rawTarget, fontSize = 22.sp, lineHeight = 32.sp,
-                color = when { !hasStarted -> Color.LightGray; isFinishedSentence -> Color(0xFF4CAF50); else -> Color.Black },
-                fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(20.dp))
+                if (!hasStarted) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            stringResource(R.string.get_ready),
+                            fontSize = 18.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
 
-            OutlinedTextField(
-                value = userInput, onValueChange = { if (hasStarted && !isFinishing) userInput = it.replace("\n", "") },
-                label = { Text(if (hasStarted) stringResource(R.string.type_here) else stringResource(R.string.waiting)) },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                enabled = hasStarted && !isFinishing, isError = isError, singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { goToNextSentence() }))
-            Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    rawTarget, fontSize = 22.sp, lineHeight = 32.sp,
+                    color = when {
+                        !hasStarted -> Color.LightGray; isFinishedSentence -> Color(0xFF4CAF50); else -> Color.Black
+                    },
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.sentence_progress, currentSentenceIndex + 1, sentences.size), fontSize = 12.sp, color = Color.Gray)
-                when {
-                    isFinishing        -> Text(stringResource(R.string.session_end), fontSize = 12.sp, color = Color(0xFF4CAF50))
-                    isError            -> Text(stringResource(R.string.correction_needed), fontSize = 12.sp, color = Color(0xFFE53935))
-                    isFinishedSentence -> Text(stringResource(R.string.press_enter), fontSize = 12.sp, color = Color(0xFF4CAF50))
+                OutlinedTextField(
+                    value = userInput,
+                    onValueChange = {
+                        if (hasStarted && !isFinishing) userInput = it.replace("\n", "")
+                    },
+                    label = {
+                        Text(
+                            if (hasStarted) stringResource(R.string.type_here) else stringResource(
+                                R.string.waiting
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                    enabled = hasStarted && !isFinishing,
+                    isError = isError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { goToNextSentence() })
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.sentence_progress,
+                            currentSentenceIndex + 1,
+                            sentences.size
+                        ), fontSize = 12.sp, color = Color.Gray
+                    )
+                    when {
+                        isFinishing -> Text(
+                            stringResource(R.string.session_end),
+                            fontSize = 12.sp,
+                            color = Color(0xFF4CAF50)
+                        )
+
+                        isError -> Text(
+                            stringResource(R.string.correction_needed),
+                            fontSize = 12.sp,
+                            color = Color(0xFFE53935)
+                        )
+
+                        isFinishedSentence -> Text(
+                            stringResource(R.string.press_enter),
+                            fontSize = 12.sp,
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
                 }
             }
         }
