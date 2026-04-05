@@ -11,10 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlin.math.roundToInt
@@ -47,10 +50,41 @@ fun CustomGameScreen(
     var speedIndex    by remember { mutableStateOf(model.savedSpeedIndex) }
     var step          by remember { mutableStateOf(AudioStep.CATEGORY) }
     var customTextCount by remember { mutableStateOf(-1) }
+
+    // Rafraîchit le nombre de textes perso à chaque fois que l'écran revient au premier plan
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                model.loadTextsByCategory("textes personnalisées")
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Met à jour customTextCount dès que model.texts change
+    val texts by model.texts.collectAsState()
+    LaunchedEffect(texts) {
+        if (customTextCount != -1 || texts.isNotEmpty()) {
+            customTextCount = texts.size
+        }
+    }
+
+    // Chargement initial
     LaunchedEffect(Unit) {
         model.loadTextsByCategory("textes personnalisées")
         kotlinx.coroutines.delay(300)
         customTextCount = model.texts.value.size
+    }
+
+    // Si "textes personnalisées" était sélectionné mais n'a plus de textes,
+    // on revient automatiquement sur "phrases"
+    LaunchedEffect(customTextCount) {
+        if (customTextCount == 0 && categoryIndex == 2) {
+            categoryIndex = 0
+            model.savedCategoryIndex = 0
+        }
     }
     val speed = speedValues[speedIndex]
 
@@ -158,13 +192,13 @@ fun CustomGameScreen(
             Text("${speedLabels[speedIndex]} — ${(speed * 10).roundToInt() / 10f} ${stringResource(R.string.words_per_sec)}",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(48.dp))
-                Button(
-                    onClick = {
-                        model.savedCategoryIndex = categoryIndex; model.savedSpeedIndex = speedIndex
-                        onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
-                ) { Text(stringResource(R.string.confirm), color = MaterialTheme.colorScheme.background) }
+            Button(
+                onClick = {
+                    model.savedCategoryIndex = categoryIndex; model.savedSpeedIndex = speedIndex
+                    onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
+            ) { Text(stringResource(R.string.confirm), color = MaterialTheme.colorScheme.background) }
         }
     }
 }
