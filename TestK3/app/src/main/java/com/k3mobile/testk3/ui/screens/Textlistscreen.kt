@@ -35,10 +35,11 @@ fun TextListScreen(
     val texts by model.texts.collectAsState()
     val isCustomCategory = category == "textes personnalisées"
 
-    var showAddDialog by remember { mutableStateOf(false) }
-    var textToEdit    by remember { mutableStateOf<TextEntity?>(null) }
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
-    var hasNavigated  by remember { mutableStateOf(false) }
+    var showAddDialog  by remember { mutableStateOf(false) }
+    var textToEdit     by remember { mutableStateOf<TextEntity?>(null) }
+    var textToDelete   by remember { mutableStateOf<TextEntity?>(null) }
+    var selectedIndex  by remember { mutableStateOf<Int?>(null) }
+    var hasNavigated   by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { model.pendingTextId = null }
     LaunchedEffect(category) { model.loadTextsByCategory(category) }
@@ -132,9 +133,9 @@ fun TextListScreen(
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        model.deleteCustomText(textEntity.idText)
-                                        true
-                                    } else false
+                                        textToDelete = textEntity
+                                    }
+                                    false
                                 }
                             )
                             SwipeToDismissBox(
@@ -169,13 +170,36 @@ fun TextListScreen(
         }
     }
 
+    // Dialog ajout
     if (showAddDialog) {
         TextDialog(title = "", content = "", dialogTitle = stringResource(R.string.new_text), confirmLabel = stringResource(R.string.add),
             onConfirm = { t, c -> model.addCustomText(t, c); showAddDialog = false }, onDismiss = { showAddDialog = false })
     }
+
+    // Dialog édition
     if (textToEdit != null) {
         TextDialog(title = textToEdit!!.title, content = textToEdit!!.content, dialogTitle = stringResource(R.string.edit_text), confirmLabel = stringResource(R.string.save),
             onConfirm = { t, c -> model.updateCustomText(textToEdit!!.idText, t, c); textToEdit = null }, onDismiss = { textToEdit = null })
+    }
+
+    // Dialog confirmation suppression
+    if (textToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { textToDelete = null },
+            title = { Text(stringResource(R.string.delete_confirm_title), fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            text = { Text(stringResource(R.string.delete_confirm_message, textToDelete!!.title)) },
+            confirmButton = {
+                Button(
+                    onClick = { model.deleteCustomText(textToDelete!!.idText); textToDelete = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                ) { Text(stringResource(R.string.delete), color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { textToDelete = null }) {
+                    Text(stringResource(R.string.cancel), color = Color.Gray)
+                }
+            }
+        )
     }
 }
 
