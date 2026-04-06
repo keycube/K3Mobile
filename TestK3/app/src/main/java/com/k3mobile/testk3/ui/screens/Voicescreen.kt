@@ -20,12 +20,18 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val voices by model.availableVoices.collectAsState()
     val selectedVoice by model.selectedVoice.collectAsState()
+    var pendingVoice by remember { mutableStateOf(selectedVoice) }
     var previewingVoiceName by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selectedVoice) {
+        if (pendingVoice == null) pendingVoice = selectedVoice
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)) {
@@ -41,77 +47,83 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
         if (voices.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(32.dp)) {
-                    Text("🔇", fontSize = 40.sp)
+                    Text("\uD83D\uDD07", fontSize = 40.sp)
                     Text(stringResource(R.string.no_voice_found), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(stringResource(R.string.no_voice_hint), fontSize = 13.sp, color = Color.Gray, lineHeight = 20.sp)
                 }
             }
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 item {
                     Text(stringResource(R.string.voices_title), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     val s = if (voices.size > 1) "s" else ""
                     Text(stringResource(R.string.voices_count, voices.size, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
                 }
-                selectedVoice?.let { active ->
-                    item { ActiveVoiceBanner(context, active, onPreview = { previewingVoiceName = active.name; model.previewVoice(active) }) }
-                    item { Text(stringResource(R.string.change_voice), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(top = 4.dp)) }
-                }
-                items(voices, key = {it.name}) { voice ->
-                    VoiceItem(context, voice, isSelected = voice.name == selectedVoice?.name, isPreviewing = previewingVoiceName == voice.name,
-                        onSelect = { model.selectVoice(voice) }, onPreview = { previewingVoiceName = voice.name; model.previewVoice(voice) })
-                }
-            }
-        }
-    }
-}
+                items(voices, key = { it.name }) { voice ->
+                    val isSelected = voice.name == pendingVoice?.name
+                    val displayName = remember(voice.name) { formatVoiceName(voice.name) }
+                    val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
 
-@Composable
-private fun ActiveVoiceBanner(context: android.content.Context, voice: Voice, onPreview: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.Black), elevation = CardDefaults.cardElevation(0.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.active_voice), fontSize = 11.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(2.dp))
-                val displayName = remember(voice.name) { formatVoiceName(voice.name) }
-                val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
-                Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                Text(displayDetails, fontSize = 12.sp, color = Color.LightGray, modifier = Modifier.padding(top = 2.dp))
+                    Card(
+                        onClick = { pendingVoice = voice },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) Color(0xFFF5F5F5) else Color.White
+                        ),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border = BorderStroke(
+                            if (isSelected) 2.dp else 1.dp,
+                            if (isSelected) Color.Black else Color(0xFFE0E0E0)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.size(20.dp).padding(2.dp), contentAlignment = Alignment.Center) {
+                                if (isSelected) {
+                                    Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(16.dp)) {}
+                                } else {
+                                    Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Transparent,
+                                        border = BorderStroke(1.5.dp, Color.LightGray), modifier = Modifier.size(16.dp)) {}
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 15.sp)
+                                Text(displayDetails, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(
+                                onClick = { previewingVoiceName = voice.name; model.previewVoice(voice) },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = if (previewingVoiceName == voice.name) Color(0xFF4CAF50) else Color.Black
+                                )
+                            ) {
+                                Text(if (previewingVoiceName == voice.name) "\u25B6 ..." else "\u25B6", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
-            OutlinedButton(onClick = onPreview, border = BorderStroke(1.dp, Color.White),
-                colors = ButtonColors(containerColor = Color.Transparent, contentColor = Color.White, disabledContainerColor = Color.Transparent, disabledContentColor = Color.Gray)
-            ) { Text(stringResource(R.string.listen), fontSize = 13.sp) }
-        }
-    }
-}
 
-@Composable
-private fun VoiceItem(context: android.content.Context, voice: Voice, isSelected: Boolean, isPreviewing: Boolean, onSelect: () -> Unit, onPreview: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = if (isSelected) Color(0xFFF5F5F5) else Color.White),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.Black else Color(0xFFE0E0E0))
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(20.dp).padding(2.dp), contentAlignment = Alignment.Center) {
-                if (isSelected) Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(16.dp)) {}
-                else Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Transparent, border = BorderStroke(1.5.dp, Color.LightGray), modifier = Modifier.size(16.dp)) {}
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                val displayName = remember(voice.name) { formatVoiceName(voice.name) }
-                val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
-                Text(displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 15.sp)
-                Text(displayDetails, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            TextButton(onClick = onPreview, colors = ButtonDefaults.textButtonColors(contentColor = if (isPreviewing) Color(0xFF4CAF50) else Color.Black)) {
-                Text(if (isPreviewing) "▶ ..." else "▶", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
-            if (!isSelected) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Button(onClick = onSelect, colors = ButtonDefaults.buttonColors(containerColor = Color.Black), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
-                    Text(stringResource(R.string.choose), fontSize = 12.sp, color = Color.White)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        pendingVoice?.let { model.selectVoice(it) }
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
+                ) {
+                    Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background)
                 }
             }
         }
@@ -139,5 +151,5 @@ private fun formatVoiceDetails(context: android.content.Context, voice: Voice): 
         else                    -> context.getString(R.string.quality_unknown)
     }
     val region = voice.locale.displayCountry.ifBlank { voice.locale.displayLanguage }
-    return "$quality · $region"
+    return "$quality \u00B7 $region"
 }
