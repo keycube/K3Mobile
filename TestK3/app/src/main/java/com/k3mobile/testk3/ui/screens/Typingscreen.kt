@@ -43,7 +43,10 @@ fun TypingScreen(textId: Long, model: MainViewModel, onBack: () -> Unit, onFinis
 private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: () -> Unit, onFinished: () -> Unit) {
     val context = LocalContext.current
     val sentences = remember(textEntity.content) {
-        textEntity.content.split(Regex("(?<=[.!?])\\s+")).map { it.trim() }.filter { it.isNotEmpty() }
+        textEntity.content
+            .split(Regex("(?<=[.!?])\\s+|\n+"))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
     }
 
     var currentSentenceIndex by remember { mutableStateOf(0) }
