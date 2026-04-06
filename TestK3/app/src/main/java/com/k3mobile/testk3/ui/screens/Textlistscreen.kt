@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
@@ -221,8 +222,7 @@ private fun TextItemCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(textEntity.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp)
-            }
+                Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp, overflow = TextOverflow.Ellipsis)            }
             if (!(readOnly && isCustomCategory)) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
