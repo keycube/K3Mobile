@@ -223,7 +223,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier.fillMaxWidth()
-                    .padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)
+                    .padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
             ) {
                 IconButton(
                     onClick = { model.stopSpeaking(); onBack() },
