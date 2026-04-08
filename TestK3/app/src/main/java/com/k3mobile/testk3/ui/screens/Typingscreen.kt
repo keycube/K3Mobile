@@ -62,6 +62,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     var resultWpm            by remember { mutableStateOf(0) }
     var resultAccuracy       by remember { mutableStateOf(0) }
     var resultDurationSec   by remember { mutableStateOf(0L) }
+    val screenOnMode = remember { model.savedScreenMode }
 
     DisposableEffect(Unit) { model.isInTypingMode = true; onDispose { model.isInTypingMode = false } }
 
@@ -92,13 +93,15 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
         totalEvaluatedChars += maxOf(ci.length, ct.length)
 
         if (currentSentenceIndex < sentences.lastIndex) {
-            model.sound.playValidation()
+            if (!screenOnMode) model.sound.playValidation()
             currentSentenceIndex++
             userInput = ""
         } else {
             isFinishing = true
-            model.sound.playVictory()
-            model.sound.vibrateVictory()
+            if (!screenOnMode) {
+                model.sound.playVictory()
+                model.sound.vibrateVictory()
+            }
 
             val duration = System.currentTimeMillis() - startTime
             val minutes = duration / 60_000.0
@@ -119,11 +122,13 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
             resultDurationSec = (System.currentTimeMillis() - startTime) / 1000
             showResults = true
 
-            model.speak(ttsBravo)
-            model.speakQueued(context.getString(R.string.tts_duration, durationText))
-            model.speakQueued(context.getString(R.string.tts_speed_result, wpmRounded))
-            model.speakQueued(context.getString(R.string.tts_accuracy_result, accRounded))
-            model.speakQueued(ttsBackToMenu)
+            if (!screenOnMode) {
+                model.speak(ttsBravo)
+                model.speakQueued(context.getString(R.string.tts_duration, durationText))
+                model.speakQueued(context.getString(R.string.tts_speed_result, wpmRounded))
+                model.speakQueued(context.getString(R.string.tts_accuracy_result, accRounded))
+                model.speakQueued(ttsBackToMenu)
+            }
         }
     }
 
@@ -131,20 +136,31 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     LaunchedEffect(Unit) {
         context.startService(Intent(context, TypingForegroundService::class.java).apply {
             putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY) })
-        model.speak(ttsGetReady)
-        delay(1_800)
-        model.sound.playCountdownTick(); model.speakQueued("3"); delay(900)
-        model.sound.playCountdownTick(); model.speakQueued("2"); delay(900)
-        model.sound.playCountdownTick(); model.speakQueued("1"); delay(900)
-        model.sound.playCountdownGo()
-        context.startService(Intent(context, TypingForegroundService::class.java).apply {
-            putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING) })
-        hasStarted = true
-        focusRequester.requestFocus()
+        if (screenOnMode) {
+            // Mode écran allumé : pas de TTS, pas de countdown, démarrage immédiat
+            context.startService(Intent(context, TypingForegroundService::class.java).apply {
+                putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING) })
+            hasStarted = true
+            focusRequester.requestFocus()
+        } else {
+            // Mode écran éteint : TTS + countdown
+            model.speak(ttsGetReady)
+            delay(1_800)
+            model.sound.playCountdownTick(); model.speakQueued("3"); delay(900)
+            model.sound.playCountdownTick(); model.speakQueued("2"); delay(900)
+            model.sound.playCountdownTick(); model.speakQueued("1"); delay(900)
+            model.sound.playCountdownGo()
+            context.startService(Intent(context, TypingForegroundService::class.java).apply {
+                putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING) })
+            hasStarted = true
+            focusRequester.requestFocus()
+        }
     }
 
     LaunchedEffect(currentSentenceIndex, hasStarted) {
-        if (hasStarted && currentSentenceIndex < sentences.size && !isFinishing) model.speak(sentences[currentSentenceIndex])
+        if (hasStarted && currentSentenceIndex < sentences.size && !isFinishing && !screenOnMode) {
+            model.speak(sentences[currentSentenceIndex])
+        }
     }
 
     LaunchedEffect("typing_keys") {

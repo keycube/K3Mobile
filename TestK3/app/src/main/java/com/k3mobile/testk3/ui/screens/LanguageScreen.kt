@@ -116,7 +116,6 @@ fun LanguageScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(24.dp))
                 Button(
                     onClick = {
                         if (selectedCode != model.savedLanguage) {

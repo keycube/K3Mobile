@@ -21,6 +21,7 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
     var ttsVolume     by remember { mutableStateOf(model.savedTtsVolume) }
     var effectsVolume by remember { mutableStateOf(model.savedEffectsVolume) }
     var vibrationEnabled by remember { mutableStateOf(model.savedVibrationEnabled) }
+    var screenOnMode by remember { mutableStateOf(model.savedScreenMode) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)) {
@@ -73,17 +74,38 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 )
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.screen_on_mode), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = screenOnMode,
+                    onCheckedChange = { screenOnMode = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color.Black,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color.LightGray
+                    )
+                )
+            }
+
             Spacer(modifier = Modifier.weight(1f))
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Spacer(modifier = Modifier.width(24.dp))
                 Button(onClick = {
                     model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume
                     model.savedVibrationEnabled = vibrationEnabled
-                    model.sound.vibrationEnabled = vibrationEnabled; onBack()
+                    model.sound.vibrationEnabled = vibrationEnabled
+                    model.savedScreenMode = screenOnMode
+                    onBack()
                 },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background) }
+
             }
         }
     }

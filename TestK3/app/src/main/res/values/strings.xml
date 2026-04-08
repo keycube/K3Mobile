@@ -87,6 +87,8 @@
     <string name="menu_voice">Voix</string>
     <string name="menu_custom_texts">Textes personnalisés</string>
     <string name="menu_stats">Statistiques</string>
+    <string name="screen_on_mode">Mode ecran allume</string>
+    <string name="screen_on_mode_desc">Desactive le TTS, les sons et le compte a rebours</string>
 
     <!-- VoiceScreen -->
     <string name="voices_title">Voix</string>

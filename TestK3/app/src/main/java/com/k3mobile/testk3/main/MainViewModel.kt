@@ -86,6 +86,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         get() = prefs.getString(KEY_LANGUAGE, "fr") ?: "fr"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
+
+    var savedScreenMode: Boolean
+        get() = prefs.getBoolean("screen_on_mode", false)
+        set(value) = prefs.edit().putBoolean("screen_on_mode", value).apply()
+
     /** Volume TTS courant en float 0.0–1.0 pour le Bundle speak(). */
     private var _ttsVolume: Float = prefs.getInt(KEY_TTS_VOLUME, 50) / 100f
 
@@ -205,17 +210,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun speak(text: String) {
-        if (!_isTtsReady.value) return
+        if (!_isTtsReady.value || savedScreenMode) return
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, volumeBundle(), "speak_${System.currentTimeMillis()}")
     }
 
     fun speakQueued(text: String) {
-        if (!_isTtsReady.value) return
+        if (!_isTtsReady.value || savedScreenMode) return
         tts?.speak(text, TextToSpeech.QUEUE_ADD, volumeBundle(), "queued_${System.currentTimeMillis()}")
     }
 
     fun speakThenDo(phrases: List<String>, onDone: () -> Unit) {
-        if (!_isTtsReady.value) { mainHandler.post(onDone); return }
+        if (!_isTtsReady.value || savedScreenMode) { mainHandler.post(onDone); return }
         if (phrases.isEmpty())  { mainHandler.post(onDone); return }
 
         val lastId = "final_${System.currentTimeMillis()}"

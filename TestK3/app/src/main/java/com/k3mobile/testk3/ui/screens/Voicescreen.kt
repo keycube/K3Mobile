@@ -26,12 +26,7 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val voices by model.availableVoices.collectAsState()
     val selectedVoice by model.selectedVoice.collectAsState()
-    var pendingVoice by remember { mutableStateOf(selectedVoice) }
     var previewingVoiceName by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(selectedVoice) {
-        if (pendingVoice == null) pendingVoice = selectedVoice
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)) {
@@ -54,8 +49,8 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
             }
         } else {
             LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
@@ -64,12 +59,12 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
                     Text(stringResource(R.string.voices_count, voices.size, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
                 }
                 items(voices, key = { it.name }) { voice ->
-                    val isSelected = voice.name == pendingVoice?.name
+                    val isSelected = voice.name == selectedVoice?.name
                     val displayName = remember(voice.name) { formatVoiceName(voice.name) }
                     val displayDetails = remember(voice) { formatVoiceDetails(context, voice) }
 
                     Card(
-                        onClick = { pendingVoice = voice },
+                        onClick = { model.selectVoice(voice) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) Color(0xFFF5F5F5) else Color.White
@@ -108,22 +103,6 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
-                        pendingVoice?.let { model.selectVoice(it) }
-                        onBack()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
-                ) {
-                    Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background)
                 }
             }
         }
