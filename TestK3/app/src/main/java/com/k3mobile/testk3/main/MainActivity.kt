@@ -63,7 +63,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TestK3Theme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {                    val navController = rememberNavController()
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+                    val navController = rememberNavController()
                     val viewModel = sharedViewModel
 
                     NavHost(

@@ -198,7 +198,7 @@ fun CustomGameScreen(
                     onConfirmer(categoryDb[categoryIndex], speedValues[speedIndex])
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
-            ) { Text(stringResource(R.string.confirm), color = MaterialTheme.colorScheme.background) }
+            ) { Text(stringResource(R.string.confirm), color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(vertical = 4.dp)) }
         }
     }
 }
