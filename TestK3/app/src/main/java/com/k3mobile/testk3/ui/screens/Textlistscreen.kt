@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.ui.MainViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,9 +39,15 @@ fun TextListScreen(
 
     var showAddDialog  by remember { mutableStateOf(false) }
     var textToEdit     by remember { mutableStateOf<TextEntity?>(null) }
-    var textToDelete   by remember { mutableStateOf<TextEntity?>(null) }
     var selectedIndex  by remember { mutableStateOf<Int?>(null) }
     var hasNavigated   by remember { mutableStateOf(false) }
+
+    // Snackbar undo delete
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var hiddenTextId by remember { mutableStateOf<Long?>(null) }
+    val deleteLabel = stringResource(R.string.text_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     LaunchedEffect(Unit) { model.pendingTextId = null }
     LaunchedEffect(category) { model.loadTextsByCategory(category) }
@@ -82,6 +89,16 @@ fun TextListScreen(
     }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = Color.Black,
+                    contentColor = Color.White,
+                    actionColor = Color.White
+                )
+            }
+        },
         floatingActionButton = {
             if (isCustomCategory) {
                 FloatingActionButton(
@@ -109,12 +126,15 @@ fun TextListScreen(
 
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(category.replaceFirstChar { it.uppercase() }, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                val s = if (texts.size > 1) "s" else ""
-                Text(stringResource(R.string.texts_count, texts.size, s, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                val visibleCount = texts.count { it.idText != hiddenTextId }
+                val s = if (visibleCount > 1) "s" else ""
+                Text(stringResource(R.string.texts_count, visibleCount, s, s), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
             }
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (texts.isEmpty()) {
+            val visibleTexts = texts.filter { it.idText != hiddenTextId }
+
+            if (visibleTexts.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.no_text_available), color = Color.Gray, fontSize = 14.sp)
@@ -124,7 +144,7 @@ fun TextListScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(
-                        items = texts.take(9).mapIndexed { i, t -> i to t },
+                        items = visibleTexts.take(9).mapIndexed { i, t -> i to t },
                         key = { (_, t) -> t.idText }
                     ) { (idx, textEntity) ->
                         val isSelected = !readOnly && selectedIndex == idx
@@ -134,7 +154,23 @@ fun TextListScreen(
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        textToDelete = textEntity
+                                        val deletedId = textEntity.idText
+                                        hiddenTextId = deletedId
+                                        scope.launch {
+                                            val result = snackbarHostState.showSnackbar(
+                                                message = deleteLabel,
+                                                actionLabel = undoLabel,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                            if (result == SnackbarResult.ActionPerformed) {
+                                                // Undo
+                                                hiddenTextId = null
+                                            } else {
+                                                // Confirmed delete
+                                                hiddenTextId = null
+                                                model.deleteCustomText(deletedId)
+                                            }
+                                        }
                                     }
                                     false
                                 }
@@ -182,26 +218,6 @@ fun TextListScreen(
         TextDialog(title = textToEdit!!.title, content = textToEdit!!.content, dialogTitle = stringResource(R.string.edit_text), confirmLabel = stringResource(R.string.save),
             onConfirm = { t, c -> model.updateCustomText(textToEdit!!.idText, t, c); textToEdit = null }, onDismiss = { textToEdit = null })
     }
-
-    // Dialog confirmation suppression
-    if (textToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { textToDelete = null },
-            title = { Text(stringResource(R.string.delete_confirm_title), fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-            text = { Text(stringResource(R.string.delete_confirm_message, textToDelete!!.title)) },
-            confirmButton = {
-                Button(
-                    onClick = { model.deleteCustomText(textToDelete!!.idText); textToDelete = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
-                ) { Text(stringResource(R.string.delete), color = Color.White) }
-            },
-            dismissButton = {
-                TextButton(onClick = { textToDelete = null }) {
-                    Text(stringResource(R.string.cancel), color = Color.Gray)
-                }
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -222,7 +238,8 @@ private fun TextItemCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(textEntity.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp, overflow = TextOverflow.Ellipsis)            }
+                Text(textEntity.content, fontSize = 13.sp, color = Color.Gray, maxLines = 2, lineHeight = 18.sp, overflow = TextOverflow.Ellipsis)
+            }
             if (!(readOnly && isCustomCategory)) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(

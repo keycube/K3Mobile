@@ -76,9 +76,9 @@
     <string name="duration_sec">%d segundos</string>
     <string name="back_to_menu">Volver al menú</string>
     <string name="tts_back_to_menu">Pulse Intro para volver al menú.</string>
-    <string name="delete_confirm_title">¿Eliminar este texto?</string>
-    <string name="delete_confirm_message">El texto \"%1$s\" y todas sus sesiones asociadas se eliminarán permanentemente.</string>
-    <string name="delete">Eliminar</string>
+    <string name="text_deleted">Texto eliminado</string>
+    <string name="undo">Deshacer</string>
+
 
     <!-- SettingsScreen -->
     <string name="settings_title">Ajustes</string>
