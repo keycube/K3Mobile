@@ -113,18 +113,10 @@ fun TextListScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)) {
-                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.Black)
-                }
-                Row(modifier = Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = stringResource(R.string.app_name), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            HorizontalDivider(color = Color.Black, thickness = 1.dp)
-            Spacer(modifier = Modifier.height(24.dp))
+            K3TopBar(onBack = onBack)
 
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(category.replaceFirstChar { it.uppercase() }, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 val visibleCount = texts.count { it.idText != hiddenTextId }
                 val s = if (visibleCount > 1) "s" else ""

@@ -54,22 +54,7 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── App bar ──────────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, start = 8.dp, end = 24.dp, bottom = 8.dp)
-        ) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.Black)
-            }
-            Text(
-                stringResource(R.string.app_name),
-                modifier = Modifier.align(Alignment.Center),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        HorizontalDivider(color = Color.Black, thickness = 1.dp)
+        K3TopBar(onBack = onBack)
 
         if (sessions.isEmpty() && totalCount == 0) {
             // ── État vide ─────────────────────────────────────────────────────

@@ -237,32 +237,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     } else {
         // Écran de frappe
         Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
-            ) {
-                IconButton(
-                    onClick = { model.stopSpeaking(); onBack() },
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = stringResource(R.string.back),
-                        tint = Color.Black
-                    )
-                }
-                Row(
-                    modifier = Modifier.align(Alignment.Center),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            HorizontalDivider(color = Color.Black, thickness = 1.dp)
+            K3TopBar(onBack = { model.stopSpeaking(); onBack() })
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 LinearProgressIndicator(
                     progress = { (currentSentenceIndex + 1).toFloat() / sentences.size },
