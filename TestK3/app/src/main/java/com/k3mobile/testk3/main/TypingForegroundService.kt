@@ -10,28 +10,31 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
 /**
- * TypingForegroundService
+ * Foreground service that keeps the application process alive during typing sessions.
  *
- * Foreground Service qui maintient le processus de l'application en vie
- * lorsque l'écran est éteint pendant une session de frappe.
+ * When the screen is off, Android may kill background processes. This service
+ * displays a persistent low-priority notification to prevent that, ensuring
+ * the [K3AccessibilityService] can continue forwarding keyboard events.
  *
- * Cycle de vie :
- *   - Démarré depuis MainActivity quand l'utilisateur lance une partie (route "typing/...")
- *   - Arrêté quand l'utilisateur quitte le TypingScreen (onBack ou onFinished)
+ * Lifecycle:
+ * - Started from [MainActivity] when the user enters a typing session ("typing/..." route).
+ * - Stopped when the user exits [com.k3mobile.testk3.ui.screens.TypingScreen] (back or finish).
  *
- * Pour mettre à jour le texte de la notification, relancez le service via startService()
- * avec un Intent contenant EXTRA_STATUS.
+ * The notification text can be updated by re-calling [startService] with a new
+ * [EXTRA_STATUS] value.
  */
 class TypingForegroundService : Service() {
 
     companion object {
-        const val CHANNEL_ID      = "k3_typing_channel"
+        const val CHANNEL_ID = "k3_typing_channel"
         const val NOTIFICATION_ID = 1
-        /** Clé pour passer le statut affiché dans la notification. */
-        const val EXTRA_STATUS    = "extra_status"
-        const val STATUS_READY    = "Préparez-vous à écrire…"
-        const val STATUS_TYPING   = "Session de frappe en cours…"
-        const val STATUS_DONE     = "Session terminée."
+
+        /** Intent extra key for the notification status text. */
+        const val EXTRA_STATUS = "extra_status"
+
+        const val STATUS_READY = "Préparez-vous à écrire…"
+        const val STATUS_TYPING = "Session de frappe en cours…"
+        const val STATUS_DONE = "Session terminée."
     }
 
     private lateinit var notificationManager: NotificationManager
@@ -49,17 +52,21 @@ class TypingForegroundService : Service() {
     }
 
     /**
-     * Met à jour le texte affiché dans la notification persistante.
-     * Peut être appelé depuis n'importe quel thread.
+     * Updates the notification text without restarting the service.
+     *
+     * Can be called from any thread.
+     *
+     * @param status The new status text to display.
      */
     fun updateStatus(status: String) {
         notificationManager.notify(NOTIFICATION_ID, buildNotification(status))
     }
 
     // -------------------------------------------------------------------------
-    // Notification
+    // Notification setup
     // -------------------------------------------------------------------------
 
+    /** Creates the notification channel (required on API 26+). */
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -72,8 +79,15 @@ class TypingForegroundService : Service() {
         notificationManager.createNotificationChannel(channel)
     }
 
+    /**
+     * Builds the persistent notification displayed during typing sessions.
+     *
+     * Tapping the notification reopens [MainActivity] without creating a new instance.
+     *
+     * @param status Text to display as the notification content.
+     * @return The built [Notification].
+     */
     private fun buildNotification(status: String): Notification {
-        // Rouvre l'activité principale en tapant sur la notification
         val openIntent = PendingIntent.getActivity(
             this,
             0,
@@ -86,12 +100,10 @@ class TypingForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("K3AudioType")
             .setContentText(status)
-            // ⚠️  Remplace android.R.drawable.ic_btn_speak_now par ton icône d'app
-            //     (ex. R.drawable.ic_notification) pour un rendu soigné en production.
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentIntent(openIntent)
-            .setOngoing(true)       // L'utilisateur ne peut pas swiper pour fermer
-            .setSilent(true)        // Pas de son / vibration à chaque mise à jour
+            .setOngoing(true)
+            .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }

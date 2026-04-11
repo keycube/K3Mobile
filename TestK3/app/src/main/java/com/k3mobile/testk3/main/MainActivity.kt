@@ -28,14 +28,25 @@ import com.k3mobile.testk3.ui.MainViewModel
 import com.k3mobile.testk3.ui.screens.*
 import java.util.Locale
 
+/**
+ * Main entry point of the K3AudioType application.
+ *
+ * Responsibilities:
+ * - Applies the saved language locale before the Activity is created.
+ * - Configures the window to remain visible on the lock screen.
+ * - Sets up the Compose navigation graph with all application screens.
+ * - Acts as a fallback keyboard event dispatcher when [K3AccessibilityService] is unavailable.
+ */
 class MainActivity : ComponentActivity() {
 
     private val sharedViewModel: MainViewModel by viewModels()
 
     /**
-     * Applique la langue sauvegardée AVANT que l'Activity ne soit créée.
-     * Cela garantit que stringResource() et context.getString() retournent
-     * les traductions dans la bonne langue dès le premier affichage.
+     * Overrides the base context to apply the user's saved language.
+     *
+     * Called before [onCreate], ensuring that [stringResource] and
+     * [Context.getString] return translations in the correct language
+     * from the very first frame.
      */
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("K3_prefs", Context.MODE_PRIVATE)
@@ -50,6 +61,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Allow the app to be displayed on the lock screen
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -67,6 +79,8 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val viewModel = sharedViewModel
 
+                    // Cross-fade transitions (100ms) prevent the "flash" of
+                    // the new screen being constructed during navigation.
                     NavHost(
                         navController = navController,
                         startDestination = "home",
@@ -146,6 +160,8 @@ class MainActivity : ComponentActivity() {
                                 ?: return@composable
                             val context = LocalContext.current
 
+                            // Start the foreground service to keep the app alive
+                            // when the screen is off during a typing session
                             LaunchedEffect(Unit) {
                                 ContextCompat.startForegroundService(
                                     context,
@@ -179,21 +195,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Fallback keyboard handler for when [K3AccessibilityService] is not active.
+     *
+     * When the accessibility service IS connected, it has already emitted the
+     * key event via [K3AppState]. Returning `true` here consumes the duplicate
+     * event that MIUI/Android generates through the lock screen interaction.
+     *
+     * When the service is NOT connected, this method emits the key event
+     * directly — but only outside of typing mode, where the soft keyboard
+     * should handle input instead.
+     */
     @SuppressLint("GestureBackNavigation")
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.repeatCount > 0) return super.onKeyDown(keyCode, event)
-
         if (keyCode == KeyEvent.KEYCODE_BACK) return super.onKeyDown(keyCode, event)
 
         if (K3AppState.isServiceConnected) {
-            // Le service d'accessibilité a DÉJÀ émis cet événement dans K3AppState.
-            // On retourne true pour CONSOMMER la touche et empêcher MIUI/Android
-            // de générer un second event (via interaction avec l'écran de verrouillage)
-            // qui arriverait dans ce même onKeyDown et produirait un doublon dans le flux.
             return true
         }
 
-        // Fallback : service inactif, on émet nous-mêmes
         if (!sharedViewModel.isInTypingMode) {
             sharedViewModel.emitKeyEvent(keyCode)
             return true
