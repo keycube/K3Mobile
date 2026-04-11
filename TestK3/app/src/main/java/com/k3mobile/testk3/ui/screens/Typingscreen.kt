@@ -28,6 +28,17 @@ import com.k3mobile.testk3.ui.MainViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
+/**
+ * Entry point for the typing exercise screen.
+ *
+ * Waits for the text entity to be available in the ViewModel's text list,
+ * showing a loading spinner in the meantime, then delegates to [TypingContent].
+ *
+ * @param textId Database ID of the text to type.
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to abort the session and navigate back.
+ * @param onFinished Callback when the session is completed and results are dismissed.
+ */
 @Composable
 fun TypingScreen(textId: Long, model: MainViewModel, onBack: () -> Unit, onFinished: () -> Unit) {
     val texts by model.texts.collectAsState()
@@ -39,6 +50,25 @@ fun TypingScreen(textId: Long, model: MainViewModel, onBack: () -> Unit, onFinis
     TypingContent(textEntity = textEntity, model = model, onBack = onBack, onFinished = onFinished)
 }
 
+/**
+ * Core typing exercise composable.
+ *
+ * Manages the full session lifecycle:
+ * 1. **Countdown** (screen-off mode): TTS "Get ready" + 3-2-1 countdown with earcons.
+ *    In screen-on mode, typing starts immediately without countdown or TTS.
+ * 2. **Typing**: displays sentences one by one, validates input via prefix matching,
+ *    tracks typed characters and Levenshtein distance for accuracy.
+ * 3. **Results**: shows WPM, accuracy (color-coded), and duration in black cards.
+ *    TTS reads the results aloud (screen-off mode only).
+ *
+ * Text normalization handles typographic variants (curly quotes, ligatures, etc.)
+ * so that physical keyboard input matches the displayed text.
+ *
+ * @param textEntity The text entity containing the content to type.
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to abort mid-session.
+ * @param onFinished Callback after results are dismissed.
+ */
 @Composable
 private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: () -> Unit, onFinished: () -> Unit) {
     val context = LocalContext.current
@@ -78,7 +108,6 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     val isError            = userInput.isNotEmpty() && !cleanTarget.startsWith(cleanInput)
     val isFinishedSentence = cleanInput == cleanTarget
 
-    // Strings capturés pour les LaunchedEffects
     val ttsGetReady     = stringResource(R.string.tts_get_ready)
     val ttsBravo        = stringResource(R.string.tts_bravo)
     val ttsBackToMenu   = stringResource(R.string.tts_back_to_menu)
@@ -132,18 +161,17 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
         }
     }
 
-    // Compte à rebours
     LaunchedEffect(Unit) {
         context.startService(Intent(context, TypingForegroundService::class.java).apply {
             putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY) })
         if (screenOnMode) {
-            // Mode écran allumé : pas de TTS, pas de countdown, démarrage immédiat
+
             context.startService(Intent(context, TypingForegroundService::class.java).apply {
                 putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING) })
             hasStarted = true
             focusRequester.requestFocus()
         } else {
-            // Mode écran éteint : TTS + countdown
+
             model.speak(ttsGetReady)
             delay(1_800)
             model.sound.playCountdownTick(); model.speakQueued("3"); delay(900)
@@ -182,7 +210,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
 
     // UI
     if (showResults) {
-        // Écran de résultats
+
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -235,7 +263,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
             }
         }
     } else {
-        // Écran de frappe
+
         Column(modifier = Modifier.fillMaxSize()) {
             K3TopBar(onBack = { model.stopSpeaking(); onBack() })
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -323,6 +351,17 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     }
 }
 
+/**
+ * Computes the Levenshtein (edit) distance between two strings.
+ *
+ * Used to calculate typing accuracy: the fewer edits needed to transform
+ * the user's input into the target sentence, the higher the accuracy.
+ *
+ * @param s1 First string (typically user input).
+ * @param s2 Second string (typically target sentence).
+ * @return The minimum number of single-character edits (insertions, deletions,
+ *         substitutions) required to change [s1] into [s2].
+ */
 fun calculateLevenshteinDistance(s1: String, s2: String): Int {
     if (s1 == s2) return 0; if (s1.isEmpty()) return s2.length; if (s2.isEmpty()) return s1.length
     val d = Array(s1.length + 1) { IntArray(s2.length + 1) }

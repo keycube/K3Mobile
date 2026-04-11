@@ -20,6 +20,21 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 
+/**
+ * TTS voice selection screen.
+ *
+ * Displays all offline voices available for the current language as
+ * radio-button cards. Tapping a card immediately selects and persists
+ * the voice (no "Accept" button needed). Each card also has a preview
+ * button (▶) that speaks a sample sentence with that voice without
+ * changing the selection.
+ *
+ * Voice names and details are cached via `remember` to avoid
+ * recomputing string parsing on every scroll frame.
+ *
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to navigate back.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
@@ -32,6 +47,7 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
         K3TopBar(onBack = onBack)
 
         if (voices.isEmpty()) {
+            // Empty state when no voices are installed for the current language
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(32.dp)) {
                     Text("\uD83D\uDD07", fontSize = 40.sp)
@@ -71,6 +87,7 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Radio button indicator
                             Box(modifier = Modifier.size(20.dp).padding(2.dp), contentAlignment = Alignment.Center) {
                                 if (isSelected) {
                                     Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(16.dp)) {}
@@ -85,6 +102,7 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
                                 Text(displayDetails, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
                             }
                             Spacer(modifier = Modifier.width(8.dp))
+                            // Preview button — speaks a sample without changing selection
                             TextButton(
                                 onClick = { previewingVoiceName = voice.name; model.previewVoice(voice) },
                                 colors = ButtonDefaults.textButtonColors(
@@ -101,6 +119,15 @@ fun VoiceScreen(model: MainViewModel, onBack: () -> Unit) {
     }
 }
 
+/**
+ * Extracts a human-readable name from a raw TTS voice identifier.
+ *
+ * Removes language codes and platform-specific tokens, capitalizes
+ * remaining parts, and appends "(network)" or "(local)" if applicable.
+ *
+ * @param rawName The raw voice name (e.g. "fr-fr-x-frd-local").
+ * @return A cleaned display name (e.g. "Frd (local)").
+ */
 private fun formatVoiceName(rawName: String): String {
     val parts = rawName.lowercase().split("-", "_")
     val cleaned = parts.filterNot { it in listOf("fr", "en", "es", "frd", "x", "local", "network") }
@@ -113,6 +140,13 @@ private fun formatVoiceName(rawName: String): String {
     return cleaned + suffix
 }
 
+/**
+ * Builds a detail string showing voice quality and region.
+ *
+ * @param context Context for accessing string resources.
+ * @param voice The TTS voice to describe.
+ * @return A string like "High quality · France".
+ */
 private fun formatVoiceDetails(context: android.content.Context, voice: Voice): String {
     val quality = when (voice.quality) {
         Voice.QUALITY_VERY_HIGH -> context.getString(R.string.quality_very_high)

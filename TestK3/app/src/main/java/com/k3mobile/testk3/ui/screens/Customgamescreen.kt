@@ -22,6 +22,24 @@ import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlin.math.roundToInt
 
+/**
+ * Game setup screen where the user selects a text category and TTS speed.
+ *
+ * Follows a three-step audio workflow controlled by [AudioStep]:
+ * 1. **CATEGORY** — user presses 1/2/3 to choose phrases, stories, or custom texts.
+ * 2. **SPEED** — user presses 1–5 to choose the TTS reading speed.
+ * 3. **CONFIRM** — user presses ENTER to start, or DEL to go back.
+ *
+ * The "custom texts" option is automatically grayed out (both visually and
+ * via keyboard) when no custom texts exist in the database. If the saved
+ * category was "custom" but all custom texts have been deleted, the selection
+ * falls back to "phrases".
+ *
+ * @param model Shared [MainViewModel].
+ * @param onConfirmer Callback with the selected category DB name and speed value.
+ * @param onAnnuler Callback to navigate back.
+ * @param onSettings Callback to open the settings screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomGameScreen(
@@ -51,7 +69,8 @@ fun CustomGameScreen(
     var step          by remember { mutableStateOf(AudioStep.CATEGORY) }
     var customTextCount by remember { mutableStateOf(-1) }
 
-    // Rafraîchit le nombre de textes perso à chaque fois que l'écran revient au premier plan
+    // Refresh custom text count whenever the screen resumes
+    // (user may have added/deleted texts via settings)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -63,7 +82,7 @@ fun CustomGameScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Met à jour customTextCount dès que model.texts change
+    // Update count reactively when the texts flow emits
     val texts by model.texts.collectAsState()
     LaunchedEffect(texts) {
         if (customTextCount != -1 || texts.isNotEmpty()) {
@@ -71,15 +90,14 @@ fun CustomGameScreen(
         }
     }
 
-    // Chargement initial
+    // Initial load with a small delay for the DB query to complete
     LaunchedEffect(Unit) {
         model.loadTextsByCategory("textes personnalisées")
         kotlinx.coroutines.delay(300)
         customTextCount = model.texts.value.size
     }
 
-    // Si "textes personnalisées" était sélectionné mais n'a plus de textes,
-    // on revient automatiquement sur "phrases"
+    // Auto-fallback to "phrases" if custom was selected but has no texts
     LaunchedEffect(customTextCount) {
         if (customTextCount == 0 && categoryIndex == 2) {
             categoryIndex = 0
@@ -93,6 +111,7 @@ fun CustomGameScreen(
 
     LaunchedEffect(Unit) { model.speak(ttsChooseType) }
 
+    // Physical keyboard event loop
     LaunchedEffect("keys") {
         for (event in model.keyChannel) {
             val keyCode = event.keyCode
@@ -154,6 +173,7 @@ fun CustomGameScreen(
             Spacer(modifier = Modifier.height(32.dp))
             Text(stringResource(R.string.text_type), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
 
+            // Category dropdown
             var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = categoryLabels[categoryIndex], onValueChange = {}, readOnly = true,
@@ -175,6 +195,8 @@ fun CustomGameScreen(
                 }
             }
             Spacer(modifier = Modifier.height(32.dp))
+
+            // Speed slider
             Text(stringResource(R.string.audio_speed), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
             Slider(
                 value = speed, onValueChange = { newVal -> speedIndex = speedValues.indexOfFirst { it >= newVal }.coerceAtLeast(0) },
@@ -195,4 +217,7 @@ fun CustomGameScreen(
     }
 }
 
+/**
+ * Steps of the audio-guided game setup workflow.
+ */
 enum class AudioStep { CATEGORY, SPEED, CONFIRM }

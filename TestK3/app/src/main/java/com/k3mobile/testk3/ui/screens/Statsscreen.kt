@@ -30,6 +30,17 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+/**
+ * Statistics screen displaying global performance metrics, a progress chart,
+ * and paginated session history.
+ *
+ * Global stats (best WPM, average accuracy, total duration) are computed via
+ * SQL aggregation on the entire database, independent of the paginated session list.
+ * The progress chart shows the last 10 sessions with a moving average trend line.
+ *
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to navigate back.
+ */
 @Composable
 fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
     val sessions     by model.sessionsWithTitle.collectAsState()
@@ -37,14 +48,12 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
     val hasMore      by model.hasMoreSessions.collectAsState()
     val chartSessions by model.chartSessions.collectAsState()
 
-    // Stats globales — toujours calculées sur TOUTE la BDD
     val bestWpm      by model.globalBestWpm.collectAsState()
     val avgAccuracy  by model.globalAvgAccuracy.collectAsState()
     val totalDurMs   by model.globalTotalDuration.collectAsState()
 
     LaunchedEffect(Unit) { model.loadStats() }
 
-    // Durée totale formatée
     val totalDurSec = totalDurMs / 1000
     val totalDurFormatted = when {
         totalDurSec >= 3600 -> "${totalDurSec / 3600}h ${(totalDurSec % 3600) / 60}min"
@@ -53,11 +62,11 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // ── App bar ──────────────────────────────────────────────────────────
+
         K3TopBar(onBack = onBack)
 
         if (sessions.isEmpty() && totalCount == 0) {
-            // ── État vide ─────────────────────────────────────────────────────
+
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -76,7 +85,7 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ── Titre ─────────────────────────────────────────────────────
+
                 item {
                     Text(stringResource(R.string.stats_title), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     val s = if (totalCount > 1) "s" else ""
@@ -88,10 +97,9 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
                     )
                 }
 
-                // ── Grille 2×2 (Alignée avec IntrinsicSize) ──────────────────────
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // Première ligne
+
                         Row(
                             modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -109,7 +117,7 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
                                 label = stringResource(R.string.avg_accuracy)
                             )
                         }
-                        // Seconde ligne
+
                         Row(
                             modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -130,12 +138,10 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
                     }
                 }
 
-                // ── Graphique de progression ──────────────────────────────────
                 if (chartSessions.size >= 2) {
                     item { ProgressChart(sessions = chartSessions) }
                 }
 
-                // ── Historique ────────────────────────────────────────────────
                 item {
                     Text(
                         stringResource(R.string.history),
@@ -165,10 +171,19 @@ fun StatsScreen(model: MainViewModel, onBack: () -> Unit) {
     }
 }
 
-// =============================================================================
-// Graphique
-// =============================================================================
-
+/**
+ * Interactive line chart showing WPM or accuracy progression.
+ *
+ * Features:
+ * - Toggle between WPM and accuracy views.
+ * - Cubic Bezier curve interpolation for smooth lines.
+ * - Filled area under the curve.
+ * - Moving average trend line (window of 3, dashed yellow).
+ * - Trend delta indicator (↑/↓/→ stable).
+ * - Grid paint objects cached via `remember` to avoid GC pressure.
+ *
+ * @param sessions List of sessions in chronological order (oldest first).
+ */
 @Composable
 fun ProgressChart(sessions: List<SessionWithTitle>) {
     var showWpm by remember { mutableStateOf(true) }
@@ -180,7 +195,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
     ) {
         Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 12.dp)) {
 
-            // ── En-tête ──────────────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -211,7 +225,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
             val lastValue = values.last().roundToInt()
             val unitLabel = if (showWpm) "WPM" else "%"
 
-            // Tendance : différence entre moyenne des 3 dernières et des 3 premières
             val trendDelta = run {
                 val window = minOf(3, values.size / 2).coerceAtLeast(1)
                 val recent = values.takeLast(window).average()
@@ -236,13 +249,11 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── Canvas ───────────────────────────────────────────────────────
             val lineColor = Color.White
             val fillColor = Color.White.copy(alpha = 0.08f)
             val dotColor  = Color.White
             val gridColor = Color.White.copy(alpha = 0.1f)
 
-            // Moyenne mobile (fenêtre 3) pour la ligne de tendance
             val movingAvg: List<Float> = values.mapIndexed { i, _ ->
                 val window = values.subList(maxOf(0, i - 1), minOf(values.size, i + 2))
                 window.average().toFloat()
@@ -274,7 +285,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                 val maxVal = values.max() * 1.1f
                 val range  = (maxVal - minVal).coerceAtLeast(1f)
 
-                // Grille horizontale
                 for (i in 0..3) {
                     val y = paddingTop + chartH - (i.toFloat() / 3) * chartH
                     drawLine(gridColor, Offset(paddingLeft, y), Offset(w - paddingRight, y), 1f)
@@ -291,7 +301,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
 
                 val points = values.mapIndexed { i, v -> Offset(xFor(i), yFor(v)) }
 
-                // Aire sous la courbe
                 val fillPath = Path().apply {
                     moveTo(points.first().x, paddingTop + chartH)
                     points.forEach { lineTo(it.x, it.y) }
@@ -300,7 +309,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                 }
                 drawPath(fillPath, fillColor)
 
-                // Courbe principale (cubique)
                 val linePath = Path().apply {
                     moveTo(points.first().x, points.first().y)
                     for (i in 1 until points.size) {
@@ -311,7 +319,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                 }
                 drawPath(linePath, lineColor, style = Stroke(width = 3f, cap = StrokeCap.Round))
 
-                // Ligne de tendance (moyenne mobile) — en jaune discret
                 val trendColor2 = Color(0xFFFFD54F).copy(alpha = 0.6f)
                 val trendPoints = movingAvg.mapIndexed { i, v -> Offset(xFor(i), yFor(v)) }
                 if (trendPoints.size >= 2) {
@@ -326,7 +333,6 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
                     drawPath(trendPath, trendColor2, style = Stroke(width = 2f, cap = StrokeCap.Round, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 6f))))
                 }
 
-                // Points + numéros
                 points.forEachIndexed { i, pt ->
                     drawCircle(Color.Black, 6f, pt)
                     drawCircle(dotColor, 4f, pt)
@@ -351,6 +357,9 @@ fun ProgressChart(sessions: List<SessionWithTitle>) {
     }
 }
 
+/**
+ * Small toggle button for switching between WPM and accuracy chart views.
+ */
 @Composable
 private fun ChartToggleButton(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
@@ -368,10 +377,16 @@ private fun ChartToggleButton(label: String, selected: Boolean, onClick: () -> U
     }
 }
 
-// =============================================================================
-// Cartes résumé — grille 2×2 (plus espace, texte lisible)
-// =============================================================================
-
+/**
+ * Black card displaying a single stat metric (e.g. "123 WPM", "62%").
+ *
+ * Label is shown above the value for readability. Used in the 2x2 stats grid.
+ *
+ * @param modifier Layout modifier (typically `weight(1f).fillMaxHeight()`).
+ * @param value The numeric value as a string.
+ * @param unit The unit suffix (e.g. "WPM", "%"), or empty for unitless values.
+ * @param label Descriptive label shown above the value.
+ */
 @Composable
 fun SummaryCard(modifier: Modifier = Modifier, value: String, unit: String, label: String) {
     Card(
@@ -402,10 +417,15 @@ fun SummaryCard(modifier: Modifier = Modifier, value: String, unit: String, labe
     }
 }
 
-// =============================================================================
-// Carte historique
-// =============================================================================
-
+/**
+ * Card displaying a single session's results in the history list.
+ *
+ * Shows the text title, date, and three metrics (WPM, accuracy, duration)
+ * separated by vertical dividers. Accuracy is color-coded: green (≥90),
+ * orange (≥70), red (<70).
+ *
+ * @param session The session data including joined text title.
+ */
 @Composable
 fun SessionCard(session: SessionWithTitle) {
     val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy · HH:mm", Locale.getDefault()) }
@@ -447,6 +467,10 @@ fun SessionCard(session: SessionWithTitle) {
     }
 }
 
+
+/**
+ * Thin vertical divider between metric columns in [SessionCard].
+ */
 @Composable
 private fun MetricVerticalDivider() {
     Box(modifier = Modifier.height(36.dp).width(1.dp)) {
@@ -454,6 +478,14 @@ private fun MetricVerticalDivider() {
     }
 }
 
+/**
+ * Single metric display (value + unit + label) used in [SessionCard].
+ *
+ * @param value The numeric value as a string.
+ * @param unit Unit suffix (e.g. "WPM"), or empty.
+ * @param label Descriptive label below the value.
+ * @param valueColor Color for the value text (used for accuracy color-coding).
+ */
 @Composable
 private fun MetricItem(value: String, unit: String, label: String, valueColor: Color = Color.Black) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

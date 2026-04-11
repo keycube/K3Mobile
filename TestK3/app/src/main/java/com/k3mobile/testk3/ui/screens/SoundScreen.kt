@@ -16,6 +16,21 @@ import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlin.math.roundToInt
 
+/**
+ * Sound and accessibility settings screen.
+ *
+ * Allows the user to adjust:
+ * - **TTS volume** (0–100%) — controls how loud the text-to-speech output is.
+ * - **Effects volume** (0–100%) — controls earcon sounds (validation, delete, etc.).
+ * - **Vibrations** toggle — enables/disables haptic feedback on victory.
+ * - **Screen-on mode** toggle — when enabled, disables all TTS, earcons, and the
+ *   countdown timer for sighted users who don't need audio feedback.
+ *
+ * Changes are only persisted when the user taps "Accept".
+ *
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to navigate back.
+ */
 @Composable
 fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
     var ttsVolume     by remember { mutableStateOf(model.savedTtsVolume) }
@@ -31,6 +46,7 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
             Text(stringResource(R.string.sound_title), fontSize = 28.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp))
 
+            // TTS volume slider
             Text(stringResource(R.string.audio_volume), style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
             Slider(value = ttsVolume.toFloat(), onValueChange = { ttsVolume = it.roundToInt() },
@@ -39,6 +55,7 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
             Text("$ttsVolume%", style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 24.dp))
 
+            // Effects volume slider
             Text(stringResource(R.string.effects_volume), style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
             Slider(value = effectsVolume.toFloat(), onValueChange = { effectsVolume = it.roundToInt() },
@@ -48,6 +65,7 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Vibration toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -66,6 +84,7 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 )
             }
 
+            // Screen-on mode toggle
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -86,6 +105,8 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.weight(1f))
+
+            // Accept button — persists all changes
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = {
@@ -97,7 +118,6 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background) }
-
             }
         }
     }

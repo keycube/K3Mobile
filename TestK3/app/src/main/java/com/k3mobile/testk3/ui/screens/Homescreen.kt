@@ -25,6 +25,16 @@ import com.k3mobile.testk3.main.K3AccessibilityService
 import com.k3mobile.testk3.main.K3AppState
 import com.k3mobile.testk3.ui.MainViewModel
 
+/**
+ * Checks whether [K3AccessibilityService] is currently enabled in system settings.
+ *
+ * Uses [Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES] as the primary check,
+ * with [K3AppState.isServiceConnected] as a runtime fallback for devices
+ * (e.g. MIUI) where the secure setting may not update immediately.
+ *
+ * @param context Application or activity context.
+ * @return `true` if the service is enabled.
+ */
 private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
     val expectedComponent = android.content.ComponentName(
         context, K3AccessibilityService::class.java
@@ -38,6 +48,23 @@ private fun isAccessibilityServiceEnabled(context: android.content.Context): Boo
     return enabledServices.split(':').any { it.equals(expectedComponent, ignoreCase = true) }
 }
 
+/**
+ * Home screen — the main entry point of the application.
+ *
+ * Displays the app name, a "Start" button, and a settings icon.
+ * Shows a blocking dialog if [K3AccessibilityService] is not enabled,
+ * guiding the user to the system accessibility settings.
+ *
+ * Keyboard shortcuts:
+ * - ENTER: start a game
+ * - S: open settings
+ *
+ * On first display (when TTS is ready), speaks a welcome message.
+ *
+ * @param model Shared [MainViewModel].
+ * @param onPartiePersonnalisee Callback to navigate to game setup.
+ * @param onSettings Callback to navigate to settings.
+ */
 @Composable
 fun HomeScreen(
     model: MainViewModel,
@@ -51,6 +78,8 @@ fun HomeScreen(
     var hasSpokenWelcome by remember { mutableStateOf(false) }
     val welcomeTts = stringResource(R.string.welcome_tts)
 
+    // Re-check accessibility service status when the app resumes
+    // (user may have just enabled it in system settings)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) { serviceEnabled = isAccessibilityServiceEnabled(context) || K3AppState.isServiceConnected
@@ -60,10 +89,12 @@ fun HomeScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Speak welcome message once when TTS becomes ready
     LaunchedEffect(isTtsReady) {
         if (isTtsReady && !hasSpokenWelcome) { hasSpokenWelcome = true; model.speak(welcomeTts) }
     }
 
+    // Physical keyboard navigation
     LaunchedEffect(Unit) {
         for (event in model.keyChannel) {
             when (event.keyCode) {
@@ -73,6 +104,7 @@ fun HomeScreen(
         }
     }
 
+    // Accessibility service permission dialog
     if (!serviceEnabled) {
         AlertDialog(
             onDismissRequest = {},

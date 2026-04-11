@@ -18,6 +18,20 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 
+/**
+ * Language selection screen.
+ *
+ * Displays available languages (French, English, Spanish) as radio-button
+ * cards. Selecting a new language and tapping "Accept" changes the TTS
+ * language, reloads voices, and recreates the Activity to apply the new
+ * locale to all string resources.
+ *
+ * Uses `Card(onClick = ...)` instead of `Modifier.clickable` to ensure
+ * the ripple effect respects rounded corners.
+ *
+ * @param model Shared [MainViewModel].
+ * @param onBack Callback to navigate back.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageScreen(
@@ -58,6 +72,7 @@ fun LanguageScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 20.dp)
             )
 
+            // Language cards with radio-button selection
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -80,6 +95,7 @@ fun LanguageScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Custom radio button indicator
                             Box(modifier = Modifier.size(20.dp).padding(2.dp), contentAlignment = Alignment.Center) {
                                 if (isSelected) {
                                     Surface(shape = MaterialTheme.shapes.extraLarge, color = Color.Black, modifier = Modifier.size(16.dp)) {}
@@ -103,6 +119,7 @@ fun LanguageScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Accept button — applies language change and recreates the Activity
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center,

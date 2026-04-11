@@ -16,6 +16,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 
+/**
+ * Settings hub screen listing all configurable options.
+ *
+ * Each item navigates to a dedicated sub-screen: language, sound, voice,
+ * custom texts, or statistics. Uses [K3TopBar] with [onQuitter] as the
+ * back action.
+ *
+ * @param onLangue Navigate to language selection.
+ * @param onSon Navigate to sound settings.
+ * @param onVoix Navigate to voice selection.
+ * @param onTextesPersonnalises Navigate to custom texts list (read-only mode).
+ * @param onStatistiques Navigate to statistics screen.
+ * @param onQuitter Navigate back to home.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -49,6 +63,14 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * Single settings menu item displayed as a bordered card with a right arrow.
+ *
+ * Uses `Card(onClick = ...)` to ensure the ripple effect respects rounded corners.
+ *
+ * @param label Text label for the setting.
+ * @param onClick Callback when the item is tapped.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsItem(label: String, onClick: () -> Unit) {

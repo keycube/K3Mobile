@@ -14,6 +14,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 
+/**
+ * Reusable top bar component used across all screens except [HomeScreen].
+ *
+ * Displays a back arrow on the left, the app name centered, and an optional
+ * trailing composable on the right (e.g. a settings icon). A black divider
+ * line separates the bar from the screen content below.
+ *
+ * @param onBack Callback invoked when the back arrow is tapped.
+ * @param trailing Optional composable displayed on the right side of the bar.
+ */
 @Composable
 fun K3TopBar(
     onBack: () -> Unit,

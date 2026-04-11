@@ -6,7 +6,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 
 /**
@@ -39,6 +41,7 @@ class TypingForegroundService : Service() {
 
     private lateinit var notificationManager: NotificationManager
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(NotificationManager::class.java)
@@ -51,22 +54,12 @@ class TypingForegroundService : Service() {
         return START_STICKY
     }
 
-    /**
-     * Updates the notification text without restarting the service.
-     *
-     * Can be called from any thread.
-     *
-     * @param status The new status text to display.
-     */
-    fun updateStatus(status: String) {
-        notificationManager.notify(NOTIFICATION_ID, buildNotification(status))
-    }
-
     // -------------------------------------------------------------------------
     // Notification setup
     // -------------------------------------------------------------------------
 
     /** Creates the notification channel (required on API 26+). */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,

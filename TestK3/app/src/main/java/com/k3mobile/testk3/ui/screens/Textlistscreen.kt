@@ -27,6 +27,28 @@ import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlinx.coroutines.launch
 
+/**
+ * Screen displaying a list of available texts for a given category.
+ *
+ * Operates in two modes:
+ * - **Game mode** (`readOnly = false`): texts are numbered 1–9 for keyboard
+ *   selection, with TTS announcement. User selects a text and presses ENTER.
+ * - **Settings mode** (`readOnly = true`): for custom texts only. Supports
+ *   swipe-to-delete with a Snackbar undo mechanism, tap-to-edit, and a FAB
+ *   to add new texts.
+ *
+ * Keyboard shortcuts (game mode only):
+ * - 1–9: select text by number
+ * - ENTER: confirm selection and start typing
+ * - DEL: go back
+ * - *: repeat the list announcement
+ *
+ * @param category Database category name ("phrases", "histoires", "textes personnalisées").
+ * @param model Shared [MainViewModel].
+ * @param onTextSelected Callback with the selected text ID (game mode).
+ * @param onBack Callback to navigate back.
+ * @param readOnly If `true`, disables game keyboard controls and enables edit/delete.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextListScreen(
@@ -42,7 +64,8 @@ fun TextListScreen(
     var selectedIndex  by remember { mutableStateOf<Int?>(null) }
     var hasNavigated   by remember { mutableStateOf(false) }
 
-    // Snackbar undo delete
+    // Snackbar-based undo delete: text is hidden immediately, then either
+    // restored (undo) or permanently deleted after the snackbar timeout.
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var hiddenTextId by remember { mutableStateOf<Long?>(null) }
@@ -52,12 +75,15 @@ fun TextListScreen(
     LaunchedEffect(Unit) { model.pendingTextId = null }
     LaunchedEffect(category) { model.loadTextsByCategory(category) }
 
+    // Game mode: TTS announcements and keyboard event loop
     if (!readOnly) {
+        // Announce the list via TTS when texts are loaded
         LaunchedEffect(texts) {
             if (texts.isEmpty()) { model.speak(context.getString(R.string.tts_no_text)); return@LaunchedEffect }
             announceList(context, model, texts)
         }
 
+        // Physical keyboard event loop
         LaunchedEffect("keys") {
             for (event in model.keyChannel) {
                 val keyCode = event.keyCode
@@ -143,6 +169,7 @@ fun TextListScreen(
                         val canSwipeDelete = readOnly && isCustomCategory
 
                         if (canSwipeDelete) {
+                            // Swipe-to-delete with undo snackbar
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -155,10 +182,8 @@ fun TextListScreen(
                                                 duration = SnackbarDuration.Short
                                             )
                                             if (result == SnackbarResult.ActionPerformed) {
-                                                // Undo
                                                 hiddenTextId = null
                                             } else {
-                                                // Confirmed delete
                                                 hiddenTextId = null
                                                 model.deleteCustomText(deletedId)
                                             }
@@ -199,19 +224,32 @@ fun TextListScreen(
         }
     }
 
-    // Dialog ajout
+    // Add custom text dialog
     if (showAddDialog) {
         TextDialog(title = "", content = "", dialogTitle = stringResource(R.string.new_text), confirmLabel = stringResource(R.string.add),
             onConfirm = { t, c -> model.addCustomText(t, c); showAddDialog = false }, onDismiss = { showAddDialog = false })
     }
 
-    // Dialog édition
+    // Edit custom text dialog
     if (textToEdit != null) {
         TextDialog(title = textToEdit!!.title, content = textToEdit!!.content, dialogTitle = stringResource(R.string.edit_text), confirmLabel = stringResource(R.string.save),
             onConfirm = { t, c -> model.updateCustomText(textToEdit!!.idText, t, c); textToEdit = null }, onDismiss = { textToEdit = null })
     }
 }
 
+/**
+ * Single text item card with number, title, content preview, and optional arrow.
+ *
+ * In game mode: shows the keyboard number and a right arrow.
+ * In read-only custom mode: hides the arrow to encourage swipe gestures.
+ *
+ * @param textEntity The text data to display.
+ * @param idx Zero-based index in the visible list.
+ * @param readOnly Whether the screen is in settings (read-only) mode.
+ * @param isSelected Whether this item is currently selected (game mode).
+ * @param isCustomCategory Whether the current category is custom texts.
+ * @param onClick Callback when the card is tapped.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TextItemCard(
@@ -245,6 +283,11 @@ private fun TextItemCard(
     }
 }
 
+/**
+ * Speaks the text list via TTS for visually impaired users.
+ *
+ * Announces the count and each text's number + title.
+ */
 private fun announceList(context: android.content.Context, model: MainViewModel, texts: List<TextEntity>) {
     val count = texts.take(9).size
     val s = if (count > 1) "s" else ""
@@ -252,6 +295,11 @@ private fun announceList(context: android.content.Context, model: MainViewModel,
     model.speak(context.getString(R.string.tts_text_list, count, s, s, items))
 }
 
+/**
+ * Maps a physical key code to a zero-based list index (1→0, 2→1, ..., 9→8).
+ *
+ * @return The index, or `null` if the key code is not a digit 1–9.
+ */
 private fun keyCodeToIndex(keyCode: Int): Int? = when (keyCode) {
     KeyEvent.KEYCODE_1 -> 0; KeyEvent.KEYCODE_2 -> 1; KeyEvent.KEYCODE_3 -> 2
     KeyEvent.KEYCODE_4 -> 3; KeyEvent.KEYCODE_5 -> 4; KeyEvent.KEYCODE_6 -> 5
@@ -259,6 +307,16 @@ private fun keyCodeToIndex(keyCode: Int): Int? = when (keyCode) {
     else -> null
 }
 
+/**
+ * Dialog for creating or editing a custom text.
+ *
+ * @param title Initial title value (empty for new texts).
+ * @param content Initial content value.
+ * @param dialogTitle Title displayed at the top of the dialog.
+ * @param confirmLabel Label for the confirm button ("Add" or "Save").
+ * @param onConfirm Callback with the edited title and content.
+ * @param onDismiss Callback when the dialog is dismissed.
+ */
 @Composable
 fun TextDialog(title: String, content: String, dialogTitle: String, confirmLabel: String,
                onConfirm: (title: String, content: String) -> Unit, onDismiss: () -> Unit) {
