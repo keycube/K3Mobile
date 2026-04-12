@@ -143,4 +143,20 @@
     <!-- WelcomeScreen -->
     <string name="welcome_title">Bienvenido a</string>
     <string name="start">Comenzar</string>
+
+    <!-- AboutScreen -->
+    <string name="menu_about">Acerca de</string>
+    <string name="about_version">Versión %1$s</string>
+    <string name="about_description">Aplicación de accesibilidad para practicar la escritura con teclado físico diseñada para personas con discapacidad visual.</string>
+    <string name="about_developer">Desarrollador</string>
+    <string name="about_developer_name">Mathis</string>
+    <string name="about_developer_school">BUT Informática — IUT 2 Grenoble</string>
+    <string name="about_technologies">Tecnologías</string>
+    <string name="about_tech_language">Lenguaje de programación</string>
+    <string name="about_tech_ui">Interfaz de usuario</string>
+    <string name="about_tech_database">Base de datos local</string>
+    <string name="about_tech_tts">Síntesis de voz</string>
+    <string name="about_tech_accessibility">Captura de teclado con pantalla apagada</string>
+    <string name="about_acknowledgments">Agradecimientos</string>
+    <string name="about_thanks_testers">Gracias a todos los testers</string>
 </resources>

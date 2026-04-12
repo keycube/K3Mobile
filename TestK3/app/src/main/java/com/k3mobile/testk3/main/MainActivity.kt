@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
                                 onVoix = { navController.navigate("voices") },
                                 onTextesPersonnalises = { navController.navigate("text_list_readonly/textes personnalisées") },
                                 onStatistiques = { navController.navigate("stats") },
+                                onAbout = { navController.navigate("about") },
                                 onQuitter = { navController.popBackStack() }
                             )
                         }
@@ -132,6 +133,10 @@ class MainActivity : ComponentActivity() {
                                 onAnnuler = { viewModel.resetKeyChannel(); navController.popBackStack() },
                                 onSettings = { navController.navigate("settings") }
                             )
+                        }
+
+                        composable("about") {
+                            AboutScreen(onBack = { navController.popBackStack() })
                         }
 
                         composable("text_list/{category}") { backStackEntry ->

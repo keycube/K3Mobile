@@ -37,6 +37,7 @@ fun SettingsScreen(
     onVoix: () -> Unit = {},
     onTextesPersonnalises: () -> Unit,
     onStatistiques: () -> Unit,
+    onAbout: () -> Unit = {},
     onQuitter: () -> Unit
 ) {
     val items = listOf(
@@ -44,7 +45,8 @@ fun SettingsScreen(
         stringResource(R.string.menu_sound) to onSon,
         stringResource(R.string.menu_voice) to onVoix,
         stringResource(R.string.menu_custom_texts) to onTextesPersonnalises,
-        stringResource(R.string.menu_stats) to onStatistiques
+        stringResource(R.string.menu_stats) to onStatistiques,
+        stringResource(R.string.menu_about) to onAbout
     )
 
     Column(modifier = Modifier.fillMaxSize()) {

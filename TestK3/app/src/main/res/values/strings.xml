@@ -142,4 +142,20 @@
     <!-- WelcomeScreen -->
     <string name="welcome_title">Bienvenue sur</string>
     <string name="start">Commencer</string>
+
+    <!-- AboutScreen -->
+    <string name="menu_about">À propos</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">Application d\'accessibilité pour l\'entraînement à la frappe au clavier physique destinée aux personnes malvoyantes.</string>
+    <string name="about_developer">Développeur</string>
+    <string name="about_developer_name">Mathis</string>
+    <string name="about_developer_school">BUT Informatique — IUT 2 Grenoble</string>
+    <string name="about_technologies">Technologies</string>
+    <string name="about_tech_language">Langage de programmation</string>
+    <string name="about_tech_ui">Interface utilisateur</string>
+    <string name="about_tech_database">Base de données locale</string>
+    <string name="about_tech_tts">Synthèse vocale</string>
+    <string name="about_tech_accessibility">Capture clavier écran éteint</string>
+    <string name="about_acknowledgments">Remerciements</string>
+    <string name="about_thanks_testers">Merci à tous les testeurs</string>
 </resources>

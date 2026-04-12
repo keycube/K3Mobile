@@ -143,4 +143,20 @@
     <!-- WelcomeScreen -->
     <string name="welcome_title">Welcome to</string>
     <string name="start">Start</string>
+
+    <!-- AboutScreen -->
+    <string name="menu_about">About</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">Accessibility app for physical keyboard typing practice designed for visually impaired users.</string>
+    <string name="about_developer">Developer</string>
+    <string name="about_developer_name">Mathis</string>
+    <string name="about_developer_school">BUT Computer Science — IUT 2 Grenoble</string>
+    <string name="about_technologies">Technologies</string>
+    <string name="about_tech_language">Programming language</string>
+    <string name="about_tech_ui">User interface</string>
+    <string name="about_tech_database">Local database</string>
+    <string name="about_tech_tts">Text-to-speech</string>
+    <string name="about_tech_accessibility">Keyboard capture with screen off</string>
+    <string name="about_acknowledgments">Acknowledgments</string>
+    <string name="about_thanks_testers">Thanks to all testers</string>
 </resources>
