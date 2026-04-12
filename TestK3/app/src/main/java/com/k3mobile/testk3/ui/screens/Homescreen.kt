@@ -3,7 +3,6 @@ package com.k3mobile.testk3.ui.screens
 import android.content.Intent
 import android.provider.Settings
 import android.view.KeyEvent
-import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings

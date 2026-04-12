@@ -19,8 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.main.TypingForegroundService
