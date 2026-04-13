@@ -87,8 +87,8 @@
     <string name="menu_voice">Voix</string>
     <string name="menu_custom_texts">Textes personnalisés</string>
     <string name="menu_stats">Statistiques</string>
-    <string name="screen_on_mode">Mode ecran allume</string>
-    <string name="screen_on_mode_desc">Desactive le TTS, les sons et le compte a rebours</string>
+    <string name="screen_on_mode">Mode écran allumé</string>
+    <string name="screen_on_mode_desc">Désactive le TTS, les sons et le compte a rebours</string>
 
     <!-- VoiceScreen -->
     <string name="voices_title">Voix</string>
@@ -146,9 +146,9 @@
     <!-- AboutScreen -->
     <string name="menu_about">À propos</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_description">Application d\'accessibilité pour l\'entraînement à la frappe au clavier physique destinée aux personnes malvoyantes.</string>
+    <string name="about_description">Application d\'accessibilité pour l\'entraînement à la frappe au clavier physique.</string>
     <string name="about_developer">Développeur</string>
-    <string name="about_developer_name">Mathis</string>
+    <string name="about_developer_name">Mathis Marsande</string>
     <string name="about_developer_school">BUT Informatique — IUT 2 Grenoble</string>
     <string name="about_technologies">Technologies</string>
     <string name="about_tech_language">Langage de programmation</string>
