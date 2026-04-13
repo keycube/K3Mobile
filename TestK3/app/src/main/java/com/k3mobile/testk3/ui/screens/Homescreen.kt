@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -106,7 +107,7 @@ fun HomeScreen(
     // Accessibility service permission dialog
     if (!serviceEnabled) {
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = { serviceEnabled = true },
             title = { Text(stringResource(R.string.permission_required), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -119,6 +120,11 @@ fun HomeScreen(
                     onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }) },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.open_settings), color = MaterialTheme.colorScheme.background) }
+            },
+            dismissButton = {
+                TextButton(onClick = { serviceEnabled = true }) {
+                    Text(stringResource(R.string.continue_without), color = Color.Gray)
+                }
             }
         )
     }

@@ -18,6 +18,7 @@
     <string name="permission_description">K3AudioType needs to be enabled as an accessibility service to receive keyboard input even when the screen is locked.</string>
     <string name="permission_steps">In the screen that will open:\n1. Find \"K3AudioType\" in the list\n2. Enable it\n3. Confirm the permission</string>
     <string name="open_settings">Open settings</string>
+    <string name="continue_without">Continue without</string>
 
     <!-- CustomGameScreen -->
     <string name="setup_game">Set up a game!</string>

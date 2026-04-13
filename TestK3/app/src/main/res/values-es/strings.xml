@@ -18,6 +18,7 @@
     <string name="permission_description">K3AudioType necesita estar activado como servicio de accesibilidad para recibir las pulsaciones del teclado incluso con la pantalla bloqueada.</string>
     <string name="permission_steps">En la pantalla que se abrirá:\n1. Busque \"K3AudioType\" en la lista\n2. Actívelo\n3. Confirme el permiso</string>
     <string name="open_settings">Abrir ajustes</string>
+    <string name="continue_without">Continuar sin</string>
 
     <!-- CustomGameScreen -->
     <string name="setup_game">¡Configurar una partida!</string>

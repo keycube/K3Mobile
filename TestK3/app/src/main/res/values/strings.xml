@@ -18,6 +18,7 @@
     <string name="permission_description">K3AudioType a besoin d\'être activé en tant que service d\'accessibilité pour recevoir les touches clavier même lorsque l\'écran est verrouillé.</string>
     <string name="permission_steps">Dans l\'écran qui va s\'ouvrir :\n1. Trouvez « K3AudioType » dans la liste\n2. Activez-le\n3. Confirmez la permission</string>
     <string name="open_settings">Ouvrir les paramètres</string>
+    <string name="continue_without">Continuer sans</string>
 
     <!-- CustomGameScreen -->
     <string name="setup_game">Paramétrer une partie !</string>
