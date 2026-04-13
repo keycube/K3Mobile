@@ -36,6 +36,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val dao = AppDatabase.getDatabase(application, viewModelScope).typingDao()
     private var tts: TextToSpeech? = null
 
+    var accessibilityDialogDismissed: Boolean = false
+
     /** Handler for posting callbacks to the main thread from TTS background threads. */
     private val mainHandler = Handler(Looper.getMainLooper())
 

@@ -77,6 +77,8 @@ fun HomeScreen(
     var serviceEnabled   by remember { mutableStateOf(isAccessibilityServiceEnabled(context) || K3AppState.isServiceConnected) }
     var hasSpokenWelcome by remember { mutableStateOf(false) }
     val welcomeTts = stringResource(R.string.welcome_tts)
+    var dismissed by remember { mutableStateOf(model.accessibilityDialogDismissed) }
+
 
     // Re-check accessibility service status when the app resumes
     // (user may have just enabled it in system settings)
@@ -105,9 +107,9 @@ fun HomeScreen(
     }
 
     // Accessibility service permission dialog
-    if (!serviceEnabled) {
+    if (!serviceEnabled && !dismissed) {
         AlertDialog(
-            onDismissRequest = { serviceEnabled = true },
+            onDismissRequest = { dismissed = true; model.accessibilityDialogDismissed = true },
             title = { Text(stringResource(R.string.permission_required), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -122,7 +124,7 @@ fun HomeScreen(
                 ) { Text(stringResource(R.string.open_settings), color = MaterialTheme.colorScheme.background) }
             },
             dismissButton = {
-                TextButton(onClick = { serviceEnabled = true }) {
+                TextButton(onClick = { dismissed = true; model.accessibilityDialogDismissed = true }) {
                     Text(stringResource(R.string.continue_without), color = Color.Gray)
                 }
             }
