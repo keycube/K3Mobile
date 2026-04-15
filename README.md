@@ -46,7 +46,7 @@ L'application propose deux modes d'utilisation :
 
 ### Depuis l'APK
 
-1. Téléchargez le fichier APK depuis les [Releases](https://github.com/keycube/K3Mobile/releases)
+1. Téléchargez le fichier APK.
 2. Installez-le sur votre téléphone (autoriser les sources inconnues si nécessaire)
 3. Au premier lancement, l'app propose d'activer le service d'accessibilité (optionnel)
 
