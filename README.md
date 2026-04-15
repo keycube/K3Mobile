@@ -24,14 +24,6 @@ L'application propose deux modes d'utilisation :
 - Choix de la voix TTS et de la vitesse de lecture
 - Fonctionne écran éteint grâce au service d'accessibilité
 
-## Captures d'écran
-
-| Accueil | Configuration | Frappe | Résultats | Statistiques |
-|---------|--------------|--------|-----------|-------------|
-| ![home] | ![config]    | ![typing] | ![results] | ![stats] |
-
-> *Ajoutez vos captures d'écran dans un dossier `screenshots/` et mettez à jour les liens ci-dessus.*
-
 ## Technologies
 
 | Technologie | Utilisation |
