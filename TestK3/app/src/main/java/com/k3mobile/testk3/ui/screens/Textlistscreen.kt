@@ -6,11 +6,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +74,8 @@ fun TextListScreen(
     var hiddenTextId by remember { mutableStateOf<Long?>(null) }
     val deleteLabel = stringResource(R.string.text_deleted)
     val undoLabel = stringResource(R.string.undo)
+    var previewText by remember { mutableStateOf<TextEntity?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) { model.pendingTextId = null }
     LaunchedEffect(category) { model.loadTextsByCategory(category) }
@@ -173,7 +179,10 @@ fun TextListScreen(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
                                         val deletedId = textEntity.idText
+                                        val deletedTitle = textEntity.title
+                                        val deletedContent = textEntity.content
                                         hiddenTextId = deletedId
+                                        model.deleteCustomText(deletedId)
                                         scope.launch {
                                             val result = snackbarHostState.showSnackbar(
                                                 message = deleteLabel,
@@ -181,10 +190,8 @@ fun TextListScreen(
                                                 duration = SnackbarDuration.Short
                                             )
                                             if (result == SnackbarResult.ActionPerformed) {
+                                                model.addCustomText(deletedTitle, deletedContent)
                                                 hiddenTextId = null
-                                            } else {
-                                                hiddenTextId = null
-                                                model.deleteCustomText(deletedId)
                                             }
                                         }
                                     }
@@ -214,10 +221,51 @@ fun TextListScreen(
                             TextItemCard(textEntity, idx, readOnly, isSelected, isCustomCategory,
                                 onClick = {
                                     if (readOnly) { if (isCustomCategory) textToEdit = textEntity }
-                                    else { model.pendingTextId = null; onTextSelected(textEntity.idText) }
+                                    else { previewText = textEntity }
                                 })
                         }
                     }
+                }
+            }
+        }
+    }
+
+    if (previewText != null) {
+        ModalBottomSheet(
+            onDismissRequest = { previewText = null },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(previewText!!.title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    previewText!!.content,
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp,
+                    color = Color.DarkGray,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                        .verticalScroll(rememberScrollState())
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        val id = previewText!!.idText
+                        previewText = null
+                        model.pendingTextId = null
+                        onTextSelected(id)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Text(stringResource(R.string.confirm), color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
                 }
             }
         }
