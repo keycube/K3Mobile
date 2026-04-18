@@ -1,4 +1,4 @@
-# K3AudioType
+[index.md](https://github.com/user-attachments/files/26846180/index.md)# K3AudioType
 
 Application Android d'accessibilité pour l'entraînement à la frappe au clavier physique, conçue pour les personnes malvoyantes.
 
@@ -100,6 +100,21 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 La documentation HTML sera disponible dans `app/build/dokka/html/index.html`.
+[Uploa//[app](index.md)
+
+# app
+
+## Packages
+
+| Name |
+|---|
+| [com.k3mobile.testk3.data](app/com.k3mobile.testk3.data/index.md) |
+| [com.k3mobile.testk3.main](app/com.k3mobile.testk3.main/index.md) |
+| [com.k3mobile.testk3.ui](app/com.k3mobile.testk3.ui/index.md) |
+| [com.k3mobile.testk3.ui.screens](app/com.k3mobile.testk3.ui.screens/index.md) |
+| [com.k3mobile.testk3.ui.theme](app/com.k3mobile.testk3.ui.theme/index.md) |
+ding index.md…]()
+
 
 ## Auteur
 
