@@ -13,6 +13,12 @@ import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
 import com.k3mobile.testk3.ui.MainViewModel
 import kotlin.math.roundToInt
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import com.k3mobile.testk3.main.K3AccessibilityService
+import com.k3mobile.testk3.main.K3AppState
 
 /**
  * Sound and accessibility settings screen.
@@ -35,6 +41,8 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
     var effectsVolume by remember { mutableStateOf(model.savedEffectsVolume) }
     var vibrationEnabled by remember { mutableStateOf(model.savedVibrationEnabled) }
     var screenOnMode by remember { mutableStateOf(model.savedScreenMode) }
+    val context = LocalContext.current
+    var showAccessibilityDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         K3TopBar(onBack = onBack)
@@ -92,7 +100,12 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                 Text(stringResource(R.string.screen_on_mode), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(
                     checked = screenOnMode,
-                    onCheckedChange = { screenOnMode = it },
+                    onCheckedChange = {
+                        screenOnMode = it
+                        if (!it && !isAccessibilityServiceEnabled(context)) {
+                            showAccessibilityDialog = true
+                        }
+                    },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = Color.Black,
@@ -119,4 +132,42 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
             }
         }
     }
+
+    if (showAccessibilityDialog) {
+        AlertDialog(
+            onDismissRequest = { showAccessibilityDialog = false },
+            title = { Text(stringResource(R.string.permission_required), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.permission_description), textAlign = TextAlign.Center, fontSize = 14.sp)
+                    Text(stringResource(R.string.permission_steps), fontSize = 13.sp, lineHeight = 20.sp, color = Color.Gray)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAccessibilityDialog = false
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
+                ) { Text(stringResource(R.string.open_settings), color = MaterialTheme.colorScheme.background) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAccessibilityDialog = false }) {
+                    Text(stringResource(R.string.continue_without), color = Color.Gray)
+                }
+            }
+        )
+    }
+}
+
+private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
+    val expectedComponent = android.content.ComponentName(
+        context, K3AccessibilityService::class.java
+    ).flattenToString()
+    val enabledServices = android.provider.Settings.Secure.getString(
+        context.contentResolver,
+        android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    ) ?: return false
+    return enabledServices.split(':').any { it.equals(expectedComponent, ignoreCase = true) }
 }
