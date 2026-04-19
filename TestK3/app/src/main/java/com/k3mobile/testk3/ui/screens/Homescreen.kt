@@ -1,6 +1,5 @@
 package com.k3mobile.testk3.ui.screens
 
-import android.provider.Settings
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,45 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k3mobile.testk3.R
-import com.k3mobile.testk3.main.K3AccessibilityService
-import com.k3mobile.testk3.main.K3AppState
 import com.k3mobile.testk3.ui.MainViewModel
-
-/**
- * Checks whether [K3AccessibilityService] is currently enabled in system settings.
- *
- * Uses [Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES] as the primary check,
- * with [K3AppState.isServiceConnected] as a runtime fallback for devices
- * (e.g. MIUI) where the secure setting may not update immediately.
- *
- * @param context Application or activity context.
- * @return `true` if the service is enabled.
- */
-private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
-    val expectedComponent = android.content.ComponentName(
-        context, K3AccessibilityService::class.java
-    ).flattenToString()
-
-    val enabledServices = android.provider.Settings.Secure.getString(
-        context.contentResolver,
-        android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-    ) ?: return false
-
-    return enabledServices.split(':').any { it.equals(expectedComponent, ignoreCase = true) }
-}
 
 /**
  * Home screen — the main entry point of the application.
  *
  * Displays the app name, a "Start" button, and a settings icon.
- * Shows a blocking dialog if [K3AccessibilityService] is not enabled,
- * guiding the user to the system accessibility settings.
  *
  * Keyboard shortcuts:
  * - ENTER: start a game
@@ -68,10 +39,8 @@ fun HomeScreen(
 ) {
     val context        = LocalContext.current
     val isTtsReady     by model.isTtsReady.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
     var hasSpokenWelcome by remember { mutableStateOf(false) }
     val welcomeTts = stringResource(R.string.welcome_tts)
-
 
     // Speak welcome message once when TTS becomes ready
     LaunchedEffect(isTtsReady) {
@@ -84,6 +53,16 @@ fun HomeScreen(
             when (event.keyCode) {
                 KeyEvent.KEYCODE_ENTER -> { model.stopSpeaking(); model.sound.playNavigation(); onPartiePersonnalisee() }
                 KeyEvent.KEYCODE_S     -> { model.stopSpeaking(); model.sound.playNavigation(); onSettings() }
+                KeyEvent.KEYCODE_M     -> {
+                    val newMode = (model.savedScreenMode + 1) % 3
+                    model.savedScreenMode = newMode
+                    val modeNames = listOf(
+                        context.getString(R.string.screen_mode_on),
+                        context.getString(R.string.screen_mode_black),
+                        context.getString(R.string.screen_mode_off)
+                    )
+                    model.speak(modeNames[newMode])
+                }
             }
         }
     }

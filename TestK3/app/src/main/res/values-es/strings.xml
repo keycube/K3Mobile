@@ -90,6 +90,13 @@
     <string name="menu_stats">Estadísticas</string>
     <string name="screen_on_mode">Modo pantalla encendida</string>
     <string name="screen_on_mode_desc">Desactiva TTS, sonidos y cuenta atras</string>
+    <string name="screen_mode_title">Modo de pantalla</string>
+    <string name="screen_mode_on">Pantalla encendida</string>
+    <string name="screen_mode_on_desc">Sin TTS, sonidos ni cuenta atras</string>
+    <string name="screen_mode_black">Pantalla negra</string>
+    <string name="screen_mode_black_desc">TTS y sonidos activos, pantalla negra</string>
+    <string name="screen_mode_off">Pantalla apagada</string>
+    <string name="screen_mode_off_desc">TTS y sonidos activos, requiere el servicio de accesibilidad</string>
 
     <!-- VoiceScreen -->
     <string name="voices_title">Voces</string>

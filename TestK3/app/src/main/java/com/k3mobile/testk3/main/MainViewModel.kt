@@ -16,10 +16,8 @@ import com.k3mobile.testk3.data.SessionWithTitle
 import com.k3mobile.testk3.data.TextEntity
 import com.k3mobile.testk3.data.SessionEntity
 import com.k3mobile.testk3.main.K3AppState
-import com.k3mobile.testk3.main.K3KeyInput
 import com.k3mobile.testk3.main.K3SoundManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -102,12 +100,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
     /**
-     * Screen-on mode: when enabled, disables TTS, earcons and countdown
-     * for sighted users who don't need audio feedback.
+     * Screen mode setting:
+     * 0 = Screen on (no TTS), 1 = Black screen (TTS active), 2 = Screen off (TTS, needs accessibility service).
      */
-    var savedScreenMode: Boolean
-        get() = prefs.getBoolean("screen_on_mode", false)
-        set(value) = prefs.edit().putBoolean("screen_on_mode", value).apply()
+    private val _screenMode = MutableStateFlow(prefs.getInt("screen_mode", 0))
+
+    /** Observable screen mode for reactive UI updates (used by MainActivity for brightness). */
+    val screenMode = _screenMode.asStateFlow()
+
+    var savedScreenMode: Int
+        get() = prefs.getInt("screen_mode", 0)
+        set(value) {
+            prefs.edit().putInt("screen_mode", value).apply()
+            _screenMode.value = value
+        }
 
     /** Current TTS volume as a float 0.0–1.0, used in the speak Bundle. */
     private var _ttsVolume: Float = prefs.getInt(KEY_TTS_VOLUME, 50) / 100f
@@ -275,7 +281,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      * Does nothing if TTS is not ready or screen-on mode is enabled.
      */
     fun speak(text: String) {
-        if (!_isTtsReady.value || savedScreenMode) return
+        if (!_isTtsReady.value || savedScreenMode == 0) return
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, volumeBundle(), "speak_${System.currentTimeMillis()}")
     }
 
@@ -285,7 +291,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      * Does nothing if TTS is not ready or screen-on mode is enabled.
      */
     fun speakQueued(text: String) {
-        if (!_isTtsReady.value || savedScreenMode) return
+        if (!_isTtsReady.value || savedScreenMode == 0) return
         tts?.speak(text, TextToSpeech.QUEUE_ADD, volumeBundle(), "queued_${System.currentTimeMillis()}")
     }
 
@@ -300,7 +306,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      * @param onDone Callback invoked on the main thread after the last phrase finishes.
      */
     fun speakThenDo(phrases: List<String>, onDone: () -> Unit) {
-        if (!_isTtsReady.value || savedScreenMode) { mainHandler.post(onDone); return }
+        if (!_isTtsReady.value || savedScreenMode == 0) { mainHandler.post(onDone); return }
         if (phrases.isEmpty()) { mainHandler.post(onDone); return }
 
         val lastId = "final_${System.currentTimeMillis()}"

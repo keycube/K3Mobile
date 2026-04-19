@@ -13,9 +13,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
@@ -78,6 +82,16 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
                     val navController = rememberNavController()
                     val viewModel = sharedViewModel
+
+                    // Observe screen mode for black screen overlay
+                    val currentScreenMode by viewModel.screenMode.collectAsState()
+                    LaunchedEffect(currentScreenMode) {
+                        if (currentScreenMode == 1) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
 
                     // Cross-fade transitions (100ms) prevent the "flash" of
                     // the new screen being constructed during navigation.
@@ -195,6 +209,15 @@ class MainActivity : ComponentActivity() {
                             StatsScreen(model = viewModel, onBack = { navController.popBackStack() })
                         }
                     }
+
+                    // Full black overlay when black screen mode is active
+                    if (currentScreenMode == 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black)
+                        )
+                    }
                 }
             }
         }
@@ -212,18 +235,16 @@ class MainActivity : ComponentActivity() {
      * should handle input instead.
      */
     @SuppressLint("GestureBackNavigation")
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (event.repeatCount > 0) return super.onKeyDown(keyCode, event)
-        if (keyCode == KeyEvent.KEYCODE_BACK) return super.onKeyDown(keyCode, event)
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
+        if (event.repeatCount > 0) return super.dispatchKeyEvent(event)
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
 
         if (K3AppState.isServiceConnected) {
             return true
         }
 
-        if (!sharedViewModel.isInTypingMode) {
-            sharedViewModel.emitKeyEvent(keyCode)
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
+        sharedViewModel.emitKeyEvent(event.keyCode, event.getUnicodeChar(event.metaState))
+        return true
     }
 }

@@ -90,6 +90,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     var resultWpm            by remember { mutableStateOf(0) }
     var resultAccuracy       by remember { mutableStateOf(0) }
     var resultDurationSec   by remember { mutableStateOf(0L) }
+    // 0 = screen on, 1 = black screen, 2 = screen off
     val screenOnMode = remember { model.savedScreenMode }
 
     DisposableEffect(Unit) { model.isInTypingMode = true; onDispose { model.isInTypingMode = false } }
@@ -120,12 +121,12 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
         totalEvaluatedChars += maxOf(ci.length, ct.length)
 
         if (currentSentenceIndex < sentences.lastIndex) {
-            if (!screenOnMode) model.sound.playValidation()
+            if (screenOnMode != 0) model.sound.playValidation()
             currentSentenceIndex++
             userInput = ""
         } else {
             isFinishing = true
-            if (!screenOnMode) {
+            if (screenOnMode != 0) {
                 model.sound.playVictory()
                 model.sound.vibrateVictory()
             }
@@ -149,7 +150,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
             resultDurationSec = (System.currentTimeMillis() - startTime) / 1000
             showResults = true
 
-            if (!screenOnMode) {
+            if (screenOnMode != 0) {
                 model.speak(ttsBravo)
                 model.speakQueued(context.getString(R.string.tts_duration, durationText))
                 model.speakQueued(context.getString(R.string.tts_speed_result, wpmRounded))
@@ -162,7 +163,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     LaunchedEffect(Unit) {
         context.startService(Intent(context, TypingForegroundService::class.java).apply {
             putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_READY) })
-        if (screenOnMode) {
+        if (screenOnMode == 0) {
 
             context.startService(Intent(context, TypingForegroundService::class.java).apply {
                 putExtra(TypingForegroundService.EXTRA_STATUS, TypingForegroundService.STATUS_TYPING) })
@@ -184,7 +185,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     }
 
     LaunchedEffect(currentSentenceIndex, hasStarted) {
-        if (hasStarted && currentSentenceIndex < sentences.size && !isFinishing && !screenOnMode) {
+        if (hasStarted && currentSentenceIndex < sentences.size && !isFinishing && screenOnMode != 0) {
             model.speak(sentences[currentSentenceIndex])
         }
     }
@@ -200,7 +201,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
             if (!hasStarted || isFinishing) continue
             when {
                 event.keyCode == KeyEvent.KEYCODE_ENTER -> goToNextSentence()
-                event.keyCode == KeyEvent.KEYCODE_DEL -> { if (userInput.isNotEmpty()) { model.sound.playDelete(); userInput = userInput.dropLast(1) } }
+                event.keyCode == KeyEvent.KEYCODE_DEL -> { if (userInput.isNotEmpty()) { if (screenOnMode != 0) model.sound.playDelete(); userInput = userInput.dropLast(1) } }
                 event.unicodeChar > 0 && !Character.isISOControl(event.unicodeChar.toChar()) -> userInput += event.unicodeChar.toChar()
             }
         }

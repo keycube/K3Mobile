@@ -90,6 +90,13 @@
     <string name="menu_stats">Statistics</string>
     <string name="screen_on_mode">Screen on mode</string>
     <string name="screen_on_mode_desc">Disables TTS, sounds and countdown</string>
+    <string name="screen_mode_title">Screen mode</string>
+    <string name="screen_mode_on">Screen on</string>
+    <string name="screen_mode_on_desc">No TTS, sounds or countdown</string>
+    <string name="screen_mode_black">Black screen</string>
+    <string name="screen_mode_black_desc">TTS and sounds active, black screen</string>
+    <string name="screen_mode_off">Screen off</string>
+    <string name="screen_mode_off_desc">TTS and sounds active, requires accessibility service</string>
 
     <!-- VoiceScreen -->
     <string name="voices_title">Voices</string>
