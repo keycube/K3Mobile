@@ -44,7 +44,13 @@ fun HomeScreen(
 
     // Speak welcome message once when TTS becomes ready
     LaunchedEffect(isTtsReady) {
-        if (isTtsReady && !hasSpokenWelcome) { hasSpokenWelcome = true; model.speak(welcomeTts) }
+        if (isTtsReady && !hasSpokenWelcome) {
+            hasSpokenWelcome = true
+            model.speak(welcomeTts)
+            if (model.savedScreenMode != 0) {
+                model.speakQueued(context.getString(R.string.home_controls_hint))
+            }
+        }
     }
 
     // Physical keyboard navigation

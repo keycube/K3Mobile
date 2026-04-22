@@ -19,6 +19,7 @@
     <string name="permission_steps">Dans l\'écran qui va s\'ouvrir :\n1. Trouvez « K3AudioType » dans la liste\n2. Activez-le\n3. Confirmez la permission</string>
     <string name="open_settings">Ouvrir les paramètres</string>
     <string name="continue_without">Continuer sans</string>
+    <string name="home_controls_hint">Appuyez sur M pour changer de mode ecran.</string>
 
     <!-- CustomGameScreen -->
     <string name="setup_game">Paramétrer une partie !</string>
@@ -94,7 +95,7 @@
     <string name="screen_mode_on">Écran allumé</string>
     <string name="screen_mode_on_desc">Sans TTS, sons ni compte a rebours</string>
     <string name="screen_mode_black">Écran noir</string>
-    <string name="screen_mode_black_desc">TTS et sons actifs, écran noir</string>
+    <string name="screen_mode_black_desc">TTS et sons actifs, écran noir (M pour changer de mode)</string>
     <string name="screen_mode_off">Écran eteint</string>
     <string name="screen_mode_off_desc">TTS et sons actifs, nécessite le service d\'accessibilité</string>
 

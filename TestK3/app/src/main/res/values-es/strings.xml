@@ -19,7 +19,8 @@
     <string name="permission_steps">En la pantalla que se abrirá:\n1. Busque \"K3AudioType\" en la lista\n2. Actívelo\n3. Confirme el permiso</string>
     <string name="open_settings">Abrir ajustes</string>
     <string name="continue_without">Continuar sin</string>
-
+    <string name="home_controls_hint">Pulse M para cambiar el modo de pantalla.</string>
+    
     <!-- CustomGameScreen -->
     <string name="setup_game">¡Configurar una partida!</string>
     <string name="text_type">Tipo de texto</string>
@@ -94,7 +95,7 @@
     <string name="screen_mode_on">Pantalla encendida</string>
     <string name="screen_mode_on_desc">Sin TTS, sonidos ni cuenta atras</string>
     <string name="screen_mode_black">Pantalla negra</string>
-    <string name="screen_mode_black_desc">TTS y sonidos activos, pantalla negra</string>
+    <string name="screen_mode_black_desc">TTS y sonidos activos, pantalla negra (M para cambiar de modo)</string>
     <string name="screen_mode_off">Pantalla apagada</string>
     <string name="screen_mode_off_desc">TTS y sonidos activos, requiere el servicio de accesibilidad</string>
 

@@ -129,7 +129,11 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("sound") {
-                            SoundScreen(model = viewModel, onBack = { navController.popBackStack() })
+                            SoundScreen(
+                                model = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onHome = { navController.navigate("home") { popUpTo("home") { inclusive = false } } }
+                                )
                         }
 
                         composable("language") {
@@ -234,7 +238,7 @@ class MainActivity : ComponentActivity() {
      * directly — but only outside of typing mode, where the soft keyboard
      * should handle input instead.
      */
-    @SuppressLint("GestureBackNavigation")
+    @SuppressLint("GestureBackNavigation", "RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
         if (event.repeatCount > 0) return super.dispatchKeyEvent(event)

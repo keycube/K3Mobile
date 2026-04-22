@@ -1,6 +1,7 @@
 package com.k3mobile.testk3.ui.screens
 
 import android.content.Intent
+import android.net.wifi.hotspot2.pps.HomeSp
 import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -36,7 +37,7 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
+fun SoundScreen(model: MainViewModel, onBack: () -> Unit, onHome: () -> Unit = onBack) {
     val context = LocalContext.current
     var ttsVolume by remember { mutableStateOf(model.savedTtsVolume) }
     var effectsVolume by remember { mutableStateOf(model.savedEffectsVolume) }
@@ -161,8 +162,13 @@ fun SoundScreen(model: MainViewModel, onBack: () -> Unit) {
                     model.savedTtsVolume = ttsVolume; model.savedEffectsVolume = effectsVolume
                     model.savedVibrationEnabled = vibrationEnabled
                     model.sound.vibrationEnabled = vibrationEnabled
+                    val previousMode = model.savedScreenMode
                     model.savedScreenMode = screenOnMode
-                    onBack()
+                    if (screenOnMode == 1 && previousMode != 1){
+                        onHome()
+                    }else {
+                        onBack()
+                    }
                 },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
                 ) { Text(stringResource(R.string.accept), color = MaterialTheme.colorScheme.background) }
