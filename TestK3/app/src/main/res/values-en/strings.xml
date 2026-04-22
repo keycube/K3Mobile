@@ -12,7 +12,7 @@
     <string name="settings">Settings</string>
 
     <!-- HomeScreen -->
-    <string name="welcome_tts">Welcome to K3 Audio Type. Press Enter to start a game. or press S to access settings.</string>
+    <string name="welcome_tts">Welcome to K3 Audio Type. Press Enter to start a game, or press S to access settings.</string>
     <string name="start_game">Start a game</string>
     <string name="permission_required">Permission required</string>
     <string name="permission_description">K3AudioType needs to be enabled as an accessibility service to receive keyboard input even when the screen is locked.</string>
@@ -89,8 +89,6 @@
     <string name="menu_voice">Voice</string>
     <string name="menu_custom_texts">Custom texts</string>
     <string name="menu_stats">Statistics</string>
-    <string name="screen_on_mode">Screen on mode</string>
-    <string name="screen_on_mode_desc">Disables TTS, sounds and countdown</string>
     <string name="screen_mode_title">Screen mode</string>
     <string name="screen_mode_on">Screen on</string>
     <string name="screen_mode_on_desc">No TTS, sounds or countdown</string>

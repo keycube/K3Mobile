@@ -12,7 +12,7 @@
     <string name="settings">Paramètres</string>
 
     <!-- HomeScreen -->
-    <string name="welcome_tts">Bienvenue sur K3 Audio Type. Appuyez sur Entrée pour lancer une partie. ou sur la touche S pour accéder aux paramètres.</string>
+    <string name="welcome_tts">Bienvenue sur K3 Audio Type. Appuyez sur Entrée pour lancer une partie, ou sur la touche S pour accéder aux paramètres.</string>
     <string name="start_game">Lancer une partie</string>
     <string name="permission_required">Autorisation requise</string>
     <string name="permission_description">K3AudioType a besoin d\'être activé en tant que service d\'accessibilité pour recevoir les touches clavier même lorsque l\'écran est verrouillé.</string>
@@ -89,14 +89,12 @@
     <string name="menu_voice">Voix</string>
     <string name="menu_custom_texts">Textes personnalisés</string>
     <string name="menu_stats">Statistiques</string>
-    <string name="screen_on_mode">Mode écran allumé</string>
-    <string name="screen_on_mode_desc">Désactive le TTS, les sons et le compte a rebours</string>
     <string name="screen_mode_title">Mode d\'écran</string>
     <string name="screen_mode_on">Écran allumé</string>
     <string name="screen_mode_on_desc">Sans TTS, sons ni compte a rebours</string>
     <string name="screen_mode_black">Écran noir</string>
     <string name="screen_mode_black_desc">TTS et sons actifs, écran noir (M pour changer de mode)</string>
-    <string name="screen_mode_off">Écran eteint</string>
+    <string name="screen_mode_off">Écran éteint</string>
     <string name="screen_mode_off_desc">TTS et sons actifs, nécessite le service d\'accessibilité</string>
 
     <!-- VoiceScreen -->

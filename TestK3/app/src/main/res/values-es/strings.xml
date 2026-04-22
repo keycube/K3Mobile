@@ -12,7 +12,7 @@
     <string name="settings">Ajustes</string>
 
     <!-- HomeScreen -->
-    <string name="welcome_tts">Bienvenido a K3 Audio Type. Pulse Intro para iniciar una partida. o la tecla S para acceder a los ajustes.</string>
+    <string name="welcome_tts">Bienvenido a K3 Audio Type. Pulse Intro para iniciar una partida, o la tecla S para acceder a los ajustes.</string>
     <string name="start_game">Iniciar una partida</string>
     <string name="permission_required">Permiso necesario</string>
     <string name="permission_description">K3AudioType necesita estar activado como servicio de accesibilidad para recibir las pulsaciones del teclado incluso con la pantalla bloqueada.</string>
@@ -20,7 +20,7 @@
     <string name="open_settings">Abrir ajustes</string>
     <string name="continue_without">Continuar sin</string>
     <string name="home_controls_hint">Pulse M para cambiar el modo de pantalla.</string>
-    
+
     <!-- CustomGameScreen -->
     <string name="setup_game">¡Configurar una partida!</string>
     <string name="text_type">Tipo de texto</string>
@@ -89,8 +89,6 @@
     <string name="menu_voice">Voz</string>
     <string name="menu_custom_texts">Textos personalizados</string>
     <string name="menu_stats">Estadísticas</string>
-    <string name="screen_on_mode">Modo pantalla encendida</string>
-    <string name="screen_on_mode_desc">Desactiva TTS, sonidos y cuenta atras</string>
     <string name="screen_mode_title">Modo de pantalla</string>
     <string name="screen_mode_on">Pantalla encendida</string>
     <string name="screen_mode_on_desc">Sin TTS, sonidos ni cuenta atras</string>
