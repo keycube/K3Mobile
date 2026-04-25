@@ -166,4 +166,11 @@
     <string name="about_tech_accessibility">Captura de teclado con pantalla apagada</string>
     <string name="about_acknowledgments">Agradecimientos</string>
     <string name="about_thanks_testers">Gracias a todos los testers</string>
+
+    <!-- ModeScreen -->
+    <string name="menu_screen_mode">Modo de pantalla</string>
+    <string name="screen_mode_subtitle">Elija como se comporta la pantalla durante el uso</string>
+    <string name="screen_mode_dim">Brillo minimo</string>
+    <string name="screen_mode_dim_desc">TTS y sonidos activos, pantalla muy oscura</string>
+    <string name="black_screen_activated">Modo pantalla negra activado. Pulse suprimir para volver atras. Desde el inicio, pulse M para cambiar de modo.</string>
 </resources>

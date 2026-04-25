@@ -14,13 +14,19 @@ import androidx.activity.viewModels
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import com.k3mobile.testk3.ui.theme.TestK3Theme
@@ -39,6 +45,8 @@ import java.util.Locale
  * - Applies the saved language locale before the Activity is created.
  * - Configures the window to remain visible on the lock screen.
  * - Sets up the Compose navigation graph with all application screens.
+ * - Manages screen brightness and black overlay based on screen mode.
+ * - Detects triple tap to cycle screen modes (useful when screen is black).
  * - Acts as a fallback keyboard event dispatcher when [K3AccessibilityService] is unavailable.
  */
 class MainActivity : ComponentActivity() {
@@ -79,17 +87,60 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TestK3Theme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+                // Triple tap state for cycling screen modes without keyboard
+                var lastTapTime by remember { mutableLongStateOf(0L) }
+                var tapCount by remember { mutableIntStateOf(0) }
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                val now = System.currentTimeMillis()
+                                if (now - lastTapTime < 500) {
+                                    tapCount++
+                                } else {
+                                    tapCount = 1
+                                }
+                                lastTapTime = now
+                                if (tapCount >= 3) {
+                                    tapCount = 0
+                                    if (sharedViewModel.savedScreenMode == 2) {
+                                        sharedViewModel.savedScreenMode = 0
+                                    }
+                                }
+                            }
+                        },
+                    color = Color.White
+                ) {
                     val navController = rememberNavController()
                     val viewModel = sharedViewModel
 
-                    // Observe screen mode for black screen overlay
+                    // Observe screen mode for brightness and overlay
                     val currentScreenMode by viewModel.screenMode.collectAsState()
                     LaunchedEffect(currentScreenMode) {
-                        if (currentScreenMode == 1) {
-                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        } else {
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        when (currentScreenMode) {
+                            1 -> {
+                                // Dim mode: minimum brightness, keep screen on
+                                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                                val lp = window.attributes
+                                lp.screenBrightness = 0.01f
+                                window.attributes = lp
+                            }
+                            2 -> {
+                                // Black screen mode: keep screen on (overlay handles blackout)
+                                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                                val lp = window.attributes
+                                lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                                window.attributes = lp
+                            }
+                            else -> {
+                                // Normal or screen off: restore defaults
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                                val lp = window.attributes
+                                lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                                window.attributes = lp
+                            }
                         }
                     }
 
@@ -117,6 +168,7 @@ class MainActivity : ComponentActivity() {
                                 onLangue = { navController.navigate("language") },
                                 onSon = { navController.navigate("sound") },
                                 onVoix = { navController.navigate("voices") },
+                                onScreenMode = { navController.navigate("screen_mode") },
                                 onTextesPersonnalises = { navController.navigate("text_list_readonly/textes personnalisées") },
                                 onStatistiques = { navController.navigate("stats") },
                                 onAbout = { navController.navigate("about") },
@@ -129,11 +181,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("sound") {
-                            SoundScreen(
-                                model = viewModel,
-                                onBack = { navController.popBackStack() },
-                                onHome = { navController.navigate("home") { popUpTo("home") { inclusive = false } } }
-                                )
+                            SoundScreen(model = viewModel, onBack = { navController.popBackStack() })
                         }
 
                         composable("language") {
@@ -155,6 +203,14 @@ class MainActivity : ComponentActivity() {
 
                         composable("about") {
                             AboutScreen(onBack = { navController.popBackStack() })
+                        }
+
+                        composable("screen_mode") {
+                            ScreenModeScreen(
+                                model = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onHome = { navController.navigate("home") { popUpTo("home") { inclusive = false } } }
+                            )
                         }
 
                         composable("text_list/{category}") { backStackEntry ->
@@ -215,7 +271,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Full black overlay when black screen mode is active
-                    if (currentScreenMode == 1) {
+                    if (currentScreenMode == 2) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -230,13 +286,15 @@ class MainActivity : ComponentActivity() {
     /**
      * Fallback keyboard handler for when [K3AccessibilityService] is not active.
      *
+     * Uses [dispatchKeyEvent] instead of onKeyDown to intercept keys BEFORE
+     * Compose's focus system captures them (which would cause keys to be
+     * absorbed by focused UI elements like buttons).
+     *
      * When the accessibility service IS connected, it has already emitted the
-     * key event via [K3AppState]. Returning `true` here consumes the duplicate
-     * event that MIUI/Android generates through the lock screen interaction.
+     * key event via [K3AppState]. Returning `true` here consumes the duplicate.
      *
      * When the service is NOT connected, this method emits the key event
-     * directly — but only outside of typing mode, where the soft keyboard
-     * should handle input instead.
+     * directly to the channel for consumption by the active screen.
      */
     @SuppressLint("GestureBackNavigation", "RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

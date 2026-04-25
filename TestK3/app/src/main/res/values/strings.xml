@@ -165,4 +165,11 @@
     <string name="about_tech_accessibility">Capture clavier écran éteint</string>
     <string name="about_acknowledgments">Remerciements</string>
     <string name="about_thanks_testers">Merci à tous les testeurs</string>
+
+    <!-- ModeScreen -->
+    <string name="menu_screen_mode">Mode d\'écran</string>
+    <string name="screen_mode_subtitle">Choisissez comment l\'écran se comporte pendant l\'utilisation</string>
+    <string name="screen_mode_dim">Luminosité minimum</string>
+    <string name="screen_mode_dim_desc">TTS et sons actifs, écran très sombre</string>
+    <string name="black_screen_activated">Mode écran noir activé. Appuyez sur supprimer pour revenir en arrière. Depuis l\'accueil, appuyez sur M pour changer de mode.</string>
 </resources>

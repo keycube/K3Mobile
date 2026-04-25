@@ -166,4 +166,11 @@
     <string name="about_tech_accessibility">Keyboard capture with screen off</string>
     <string name="about_acknowledgments">Acknowledgments</string>
     <string name="about_thanks_testers">Thanks to all testers</string>
+
+    <!-- ModeScreen -->
+    <string name="menu_screen_mode">Screen mode</string>
+    <string name="screen_mode_subtitle">Choose how the screen behaves during use</string>
+    <string name="screen_mode_dim">Minimum brightness</string>
+    <string name="screen_mode_dim_desc">TTS and sounds active, very dim screen</string>
+    <string name="black_screen_activated">Black screen mode activated. Press delete to go back. From the home screen, press M to change mode.</string>
 </resources>
