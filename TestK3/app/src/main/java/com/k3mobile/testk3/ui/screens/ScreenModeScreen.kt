@@ -125,7 +125,7 @@ fun ScreenModeScreen(model: MainViewModel, onBack: () -> Unit, onHome: () -> Uni
     // Accessibility service dialog
     if (showAccessibilityDialog) {
         AlertDialog(
-            onDismissRequest = { showAccessibilityDialog = false },
+            onDismissRequest = {},
             title = { Text(stringResource(R.string.permission_required), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

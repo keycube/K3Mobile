@@ -139,10 +139,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      */
     val keyChannel get() = K3AppState.keyChannel
 
-    /** Proxied typing mode flag from [K3AppState]. */
-    var isInTypingMode: Boolean
-        get() = K3AppState.isInTypingMode
-        set(value) { K3AppState.isInTypingMode = value }
 
     /** ID of the text selected by the user in [TextListScreen], awaiting ENTER confirmation. */
     var pendingTextId: Long? = null

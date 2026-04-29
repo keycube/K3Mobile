@@ -32,9 +32,6 @@ object K3AppState {
     var keyChannel: Channel<K3KeyInput> = Channel(Channel.UNLIMITED)
         private set
 
-    /** `true` when the user is actively typing in [com.k3mobile.testk3.ui.screens.TypingScreen]. */
-    @Volatile var isInTypingMode: Boolean = false
-
     /** `true` when [K3AccessibilityService] is bound and intercepting key events. */
     @Volatile var isServiceConnected: Boolean = false
 

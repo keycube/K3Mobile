@@ -2,12 +2,35 @@ package com.k3mobile.testk3.ui.screens
 
 import android.content.Intent
 import android.view.KeyEvent
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -92,9 +115,7 @@ private fun TypingContent(textEntity: TextEntity, model: MainViewModel, onBack: 
     var resultDurationSec   by remember { mutableStateOf(0L) }
     // 0 = screen on, 1 = black screen, 2 = screen off
     val screenOnMode = remember { model.savedScreenMode }
-
-    DisposableEffect(Unit) { model.isInTypingMode = true; onDispose { model.isInTypingMode = false } }
-
+    
     fun String.normalize(): String = this
         .replace("\u2019", "'").replace("\u2018", "'")
         .replace("\u2026", "...").replace("œ", "oe").replace("Œ", "Oe")
